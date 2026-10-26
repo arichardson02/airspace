@@ -5,7 +5,7 @@ Terraform for deploying the app to DigitalOcean App Platform:
 - `frontend` service (Next.js) at `/`
 - `backend` service (NestJS) at `/api`
 - `migrate` pre-deploy job (runs database migrations before each release)
-- `db`: a managed Postgres cluster (`fs-career-db`, database `fs_career`), firewalled to the app
+- a managed Postgres cluster (`fs-career-db`, database `fs_career`), firewalled to the app; its connection details are passed to the backend and migrate job as secret env vars
 - a DigitalOcean project grouping it all
 
 Code deploys happen automatically on every push to the configured branch. Terraform is only

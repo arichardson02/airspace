@@ -1,9 +1,20 @@
+data "digitalocean_database_ca" "postgres" {
+  cluster_id = digitalocean_database_cluster.postgres.id
+}
+
 locals {
-  # App Platform fills in ${db.*} values from the database component at deploy time.
-  # In HCL, $${...} produces a literal ${...}.
+  # Connection details come straight from the cluster rather than an App Platform database
+  # component, whose ${db.*} bindings kept resolving to the app's old dev database.
   database_envs = {
-    DATABASE_URL     = "$${db.DATABASE_URL}"
-    DATABASE_CA_CERT = "$${db.CA_CERT}"
+    DATABASE_URL = format(
+      "postgresql://%s:%s@%s:%d/%s?sslmode=require",
+      digitalocean_database_cluster.postgres.user,
+      urlencode(digitalocean_database_cluster.postgres.password),
+      digitalocean_database_cluster.postgres.host,
+      digitalocean_database_cluster.postgres.port,
+      digitalocean_database_db.app.name,
+    )
+    DATABASE_CA_CERT = data.digitalocean_database_ca.postgres.certificate
   }
 }
 
@@ -63,6 +74,7 @@ resource "digitalocean_app" "fs_career" {
           key   = env.key
           value = env.value
           scope = "RUN_TIME"
+          type  = "SECRET"
         }
       }
     }
@@ -104,23 +116,25 @@ resource "digitalocean_app" "fs_career" {
           key   = env.key
           value = env.value
           scope = "RUN_TIME"
+          type  = "SECRET"
         }
       }
     }
+  }
 
-    # Managed cluster rather than a dev database: dev databases can't create schemas, which
-    # Drizzle's migrator needs for its history table.
-    database {
-      name         = "db"
-      engine       = "PG"
-      production   = true
-      cluster_name = digitalocean_database_cluster.postgres.name
-      db_name      = digitalocean_database_db.app.name
-      db_user      = "doadmin"
-    }
+  lifecycle {
+    # DigitalOcean only returns SECRET env values encrypted (EV[...]), so Terraform would see a
+    # change on every plan. If the database password or cluster changes, remove this, apply,
+    # and put it back.
+    ignore_changes = [
+      spec[0].service[0].env, # backend
+      spec[0].job[0].env,     # migrate
+    ]
   }
 }
 
+# Managed cluster rather than an App Platform dev database: dev databases can't create
+# schemas, which Drizzle's migrator needs for its history table.
 resource "digitalocean_database_cluster" "postgres" {
   name       = "${var.app_name}-db"
   engine     = "pg"
