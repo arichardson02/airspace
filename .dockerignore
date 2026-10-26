@@ -1,0 +1,10 @@
+# Docker builds use the repo root as context (see backend/Dockerfile, frontend/Dockerfile).
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+connector
+infra
+.git

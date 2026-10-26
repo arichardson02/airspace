@@ -17,7 +17,8 @@
     "lint": "oxlint --type-aware src/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:migrate:prod": "node dist/database/migrate.js"
   },
   "dependencies": {
     "@fs-career/contracts": "link:../contracts",

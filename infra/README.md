@@ -1,0 +1,48 @@
+# Infrastructure
+
+Terraform for deploying the app to DigitalOcean App Platform:
+
+- `frontend` service (Next.js) at `/`
+- `backend` service (NestJS) at `/api`
+- `migrate` pre-deploy job (runs database migrations before each release)
+- `db` Postgres dev database
+- a DigitalOcean project grouping it all
+
+Code deploys happen automatically on every push to the configured branch. Terraform is only
+needed when the infrastructure itself changes (sizes, routes, env vars, database).
+
+## One-time setup
+
+1. Push this repository to GitHub.
+2. In DigitalOcean, connect your GitHub account (Apps > Create App > GitHub) so App Platform
+   can read the repo. You can cancel the wizard after authorizing.
+3. Create a DigitalOcean API token with read/write access.
+4. Create an HCP Terraform organization and a workspace for this app. Either:
+   - set the workspace's execution mode to **Local**, so Terraform runs on your machine and
+     only stores state in HCP; or
+   - keep remote execution and add `DIGITALOCEAN_TOKEN` as a sensitive environment variable
+     in the workspace.
+5. Log in to HCP Terraform: `terraform login`.
+
+## Each session
+
+```sh
+export DIGITALOCEAN_TOKEN=...         # PowerShell: $env:DIGITALOCEAN_TOKEN = "..."
+export TF_CLOUD_ORGANIZATION=...
+export TF_WORKSPACE=fs-career
+
+cp terraform.tfvars.example terraform.tfvars   # first time only, then set github_repo
+terraform init
+terraform plan
+terraform apply
+```
+
+After the first apply, `terraform output connector_backend_url` gives the value for the
+connector's `BACKEND_URL`.
+
+## Local checks without credentials
+
+```sh
+terraform init -backend=false
+terraform validate
+```

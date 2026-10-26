@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ORPCModule } from '@orpc/nest';
 import { DatabaseModule } from '../database/database.module.js';
+import { HealthController } from '../health/health.controller.js';
 import { IngestModule } from '../ingest/ingest.module.js';
 
 @Module({
@@ -11,5 +12,6 @@ import { IngestModule } from '../ingest/ingest.module.js';
     ORPCModule.forRoot({}),
     IngestModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

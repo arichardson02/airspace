@@ -1,0 +1,4 @@
+github_repo = "your-github-user/fs-career-app"
+# region        = "nyc"
+# branch        = "main"
+# instance_size = "apps-s-1vcpu-0.5gb"
