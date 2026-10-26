@@ -108,13 +108,40 @@ resource "digitalocean_app" "fs_career" {
       }
     }
 
-    # Dev database ($7/month). For production, swap in a digitalocean_database_cluster
-    # and reference it here with cluster_name and production = true.
+    # Managed cluster rather than a dev database: dev databases can't create schemas, which
+    # Drizzle's migrator needs for its history table.
     database {
-      name       = "db"
-      engine     = "PG"
-      production = false
+      name         = "db"
+      engine       = "PG"
+      production   = true
+      cluster_name = digitalocean_database_cluster.postgres.name
+      db_name      = digitalocean_database_db.app.name
+      db_user      = "doadmin"
     }
+  }
+}
+
+resource "digitalocean_database_cluster" "postgres" {
+  name       = "${var.app_name}-db"
+  engine     = "pg"
+  version    = "18"
+  size       = var.database_size
+  region     = var.database_region
+  node_count = 1
+}
+
+resource "digitalocean_database_db" "app" {
+  cluster_id = digitalocean_database_cluster.postgres.id
+  name       = "fs_career"
+}
+
+# Only the app can connect to the database.
+resource "digitalocean_database_firewall" "postgres" {
+  cluster_id = digitalocean_database_cluster.postgres.id
+
+  rule {
+    type  = "app"
+    value = digitalocean_app.fs_career.id
   }
 }
 
@@ -123,5 +150,8 @@ resource "digitalocean_project" "fs_career" {
   description = "Flight sim career app: frontend, backend and database."
   purpose     = "Web Application"
   environment = "Development"
-  resources   = [digitalocean_app.fs_career.urn]
+  resources = [
+    digitalocean_app.fs_career.urn,
+    digitalocean_database_cluster.postgres.urn,
+  ]
 }

@@ -26,3 +26,15 @@ variable "instance_size" {
   type        = string
   default     = "apps-s-1vcpu-0.5gb"
 }
+
+variable "database_size" {
+  description = "Managed Postgres node size."
+  type        = string
+  default     = "db-s-1vcpu-1gb"
+}
+
+variable "database_region" {
+  description = "Managed Postgres datacenter slug; keep it near the app region."
+  type        = string
+  default     = "nyc3"
+}
