@@ -1,0 +1,24 @@
+name: fs-career
+
+services:
+  postgres:
+    # Pinned to the major version: a new major can't read an older major's data directory.
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fs_career}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fs_career}
+      POSTGRES_DB: ${POSTGRES_DB:-fs_career}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18+ images keep data in a versioned subfolder of /var/lib/postgresql.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

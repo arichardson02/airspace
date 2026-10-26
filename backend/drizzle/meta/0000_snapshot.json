@@ -1,0 +1,209 @@
+{
+  "id": "680d7b20-05d3-4358-abd8-ea265d0a353e",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.connector_sessions": {
+      "name": "connector_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "connector_version": {
+          "name": "connector_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sim_name": {
+          "name": "sim_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sim_version_major": {
+          "name": "sim_version_major",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sim_version_minor": {
+          "name": "sim_version_minor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.positions": {
+      "name": "positions",
+      "schema": "",
+      "columns": {
+        "connector_session_id": {
+          "name": "connector_session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ts": {
+          "name": "ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "altitude_ft": {
+          "name": "altitude_ft",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "altitude_agl_ft": {
+          "name": "altitude_agl_ft",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heading_true_deg": {
+          "name": "heading_true_deg",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ground_speed_kts": {
+          "name": "ground_speed_kts",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "indicated_airspeed_kts": {
+          "name": "indicated_airspeed_kts",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vertical_speed_fpm": {
+          "name": "vertical_speed_fpm",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "on_ground": {
+          "name": "on_ground",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_weight_lbs": {
+          "name": "fuel_weight_lbs",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "positions_session_ts_idx": {
+          "name": "positions_session_ts_idx",
+          "columns": [
+            {
+              "expression": "connector_session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ts",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "positions_connector_session_id_connector_sessions_id_fk": {
+          "name": "positions_connector_session_id_connector_sessions_id_fk",
+          "tableFrom": "positions",
+          "tableTo": "connector_sessions",
+          "columnsFrom": [
+            "connector_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "positions_connector_session_id_seq_pk": {
+          "name": "positions_connector_session_id_seq_pk",
+          "columns": [
+            "connector_session_id",
+            "seq"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
