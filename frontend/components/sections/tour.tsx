@@ -15,20 +15,20 @@ const ease = [0.22, 1, 0.36, 1] as const;
 // the right is a browser window showing the app: its address changes with the step and
 // the page inside rolls to that step's scene. Clicking a step jumps to it and stops the
 // timer. The whole thing builds with the scroll: heading, then each step, then the window.
-export function Careers() {
+export function Tour() {
   const tick = useTick(SCENE_MS);
   const [picked, setPicked] = useState<number | null>(null);
   const current = picked ?? tick % steps.length;
 
   return (
     <section
-      id="careers"
-      aria-labelledby="careers-title"
+      id="tour"
+      aria-labelledby="tour-title"
       className="flex min-h-screen items-center bg-ink text-paper"
     >
       <ScrollGroup className="mx-auto w-full max-w-7xl px-5 py-24 sm:py-32" to="start 30%">
-        <h2 id="careers-title" className="display text-4xl sm:text-5xl md:text-6xl">
-          <Words text="How It Works" range={[0, 0.4]} />
+        <h2 id="tour-title" className="display text-4xl sm:text-5xl md:text-6xl">
+          <Words text="Tour" range={[0, 0.4]} />
         </h2>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_1.3fr] lg:gap-16">

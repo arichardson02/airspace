@@ -21,14 +21,19 @@ const ranks = ["Student", "First Officer", "Captain", "Senior Captain"];
 // Vertical speed over the last seconds before touchdown.
 const descent = "M 0 10 C 60 14, 120 22, 180 34 S 260 58, 300 60";
 
-// Rows arrive one after another, each from the side its card's visual comes from.
-const rowRange = (index: number): [number, number] => [0.35 + index * 0.1, 0.75 + index * 0.1];
+// Rows arrive one after another, each from the side its card's visual comes from. The
+// windows are spread over 0.3 to 0.95 of the card's progress, so the last row has finished
+// by the time the card is fully in: a window ending past 1 would leave it short of its spot.
+const rowRange = (index: number, total: number): [number, number] => {
+  const start = 0.3 + (total > 1 ? (index * 0.3) / (total - 1) : 0);
+  return [start, start + 0.35];
+};
 
 function JobsList({ from }: { from: "left" | "right" }) {
   return (
     <ul className="divide-y divide-paper/10 border-t border-paper/10">
       {jobs.map((job, index) => (
-        <Slide key={job.route} from={from} range={rowRange(index)}>
+        <Slide key={job.route} from={from} range={rowRange(index, jobs.length)}>
           <div className="flex items-center justify-between py-3.5">
             <div>
               <p className="text-sm font-medium">{job.route}</p>
@@ -56,7 +61,7 @@ function LogbookTable({ from }: { from: "left" | "right" }) {
       </div>
       <ul className="divide-y divide-paper/10">
         {flights.map((flight, index) => (
-          <Slide key={flight.date} from={from} range={rowRange(index)}>
+          <Slide key={flight.date} from={from} range={rowRange(index, flights.length)}>
             <div className="grid grid-cols-[1fr_1.6fr_1fr_1fr] py-3.5">
               <span className="text-paper/50">{flight.date}</span>
               <span className="font-medium">{flight.route}</span>
@@ -121,7 +126,7 @@ function RankLadder({ from }: { from: "left" | "right" }) {
         {ranks.map((rank, index) => {
           const done = index <= 1;
           return (
-            <Slide key={rank} from={from} range={rowRange(index)}>
+            <Slide key={rank} from={from} range={rowRange(index, ranks.length)}>
               <div className="flex items-center gap-4 py-3">
                 <span
                   className={cn(
@@ -162,8 +167,8 @@ const features = [
     Visual: LandingTrace,
   },
   {
-    title: "Ranks and Aircraft",
-    body: "XP from every job moves you up the ranks and unlocks bigger aircraft.",
+    title: "Ranks",
+    body: "XP from every job moves you up the ranks. Every aircraft is open from day one.",
     Visual: RankLadder,
   },
 ];

@@ -43,7 +43,7 @@ export function Cta() {
 
         <div className="relative mx-auto flex w-full max-w-7xl flex-col items-center px-5 py-24 text-center">
           <h2 id="download-title" className="display text-5xl sm:text-7xl md:text-8xl">
-            <Words text="Start Your Career" range={[0.2, 0.75]} className="justify-center" />
+            <Words text="Start Flying" range={[0.2, 0.75]} className="justify-center" />
           </h2>
           <Slide from="bottom" range={[0.5, 0.9]}>
             <p className="mt-6 max-w-sm text-lg text-paper/60 sm:text-xl">Free while Airspace is in early access.</p>

@@ -49,17 +49,24 @@ const leaders = [
   { name: "Priya", hours: 212.4, flying: true },
   { name: "Mara K.", hours: 187.1, flying: true },
   { name: "You", hours: 164.8 },
+  { name: "Jonas", hours: 141.6 },
 ];
 
+// One line each, so every chat row is the same height as a leaderboard row.
 const chat = [
-  { name: "Jonas", text: "Anyone up for the Anchorage run Saturday?" },
+  { name: "Jonas", text: "Anchorage run Saturday, who's in?" },
   { name: "Mara K.", text: "In. Taking the 737." },
   { name: "Theo", text: "Same, I'll be on the CRJ." },
-  { name: "Priya", text: "Just greased one at SFO, -96 fpm." },
+  { name: "Priya", text: "Greased one at SFO, -96 fpm." },
   { name: "Lena", text: "Show-off. What runway?" },
   { name: "Priya", text: "28L, light crosswind." },
-  { name: "Jonas", text: "Departure 19:00 UTC then, gate B4." },
+  { name: "Jonas", text: "Departure 19:00 UTC, gate B4." },
 ];
+
+/** Rows in the leaderboard and the chat window, so the two cards are the same size. */
+const ROWS = 4;
+/** Height of one row in px. Matches the h-11 on the rows. */
+const ROW_PX = 44;
 
 const lift = { whileHover: { y: -4 }, transition: { type: "spring" as const, stiffness: 400, damping: 30 } };
 
@@ -68,6 +75,16 @@ function Card({ children }: { children: ReactNode }) {
     <motion.div {...lift} className="flex h-full flex-col overflow-hidden rounded-3xl bg-ink p-6 text-paper sm:p-7">
       {children}
     </motion.div>
+  );
+}
+
+// Every card opens with the same header, so titles line up across the grid.
+function CardHeader({ title, aside }: { title: string; aside: string }) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <span className="text-xs text-paper/50">{aside}</span>
+    </div>
   );
 }
 
@@ -91,11 +108,8 @@ function OnlineNow() {
 
   return (
     <>
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold">Online Now</h3>
-        <span className="text-xs text-paper/50">5 of 24</span>
-      </div>
-      <ul className="mt-5 flex flex-col gap-4">
+      <CardHeader title="Online Now" aside="5 of 24" />
+      <ul className="mt-4 flex flex-col gap-4">
         {pilots.map((pilot, index) => (
           <li key={pilot.name} className="flex items-center gap-3">
             <Avatar name={pilot.name} />
@@ -191,10 +205,10 @@ function Leaderboard() {
 
   return (
     <>
-      <h3 className="text-sm font-semibold">Leaderboard · Hours</h3>
-      <ol className="mt-5 flex flex-col gap-3.5">
+      <CardHeader title="Leaderboard" aside="Hours" />
+      <ol className="mt-4">
         {leaders.map((pilot, index) => (
-          <li key={pilot.name} className="flex items-center gap-3 text-sm">
+          <li key={pilot.name} className="flex h-11 items-center gap-3 text-sm">
             <span className="w-4 tabular-nums text-paper/40">{index + 1}</span>
             <span className={cn("flex-1 font-medium", pilot.name === "You" && "text-paper/70")}>{pilot.name}</span>
             <span className="text-paper/70">
@@ -208,37 +222,36 @@ function Leaderboard() {
 }
 
 function ClubChat() {
-  // A conversation that keeps going: every few seconds the next line arrives at the
-  // bottom and everything above slides up to make room, the oldest leaving at the top.
-  const tick = useTick(2800);
-  const visible = Array.from({ length: 4 }, (_, offset) => {
+  // A conversation that keeps going. The window is ROWS lines tall and every row has the
+  // same fixed height. Each tick the list is remounted with one more line below the
+  // window and slides up by exactly one row, which leaves the lines in the same place as
+  // the next remount starts them, so the stream never jumps.
+  const tick = useTick(2600);
+  const lines = Array.from({ length: ROWS + 1 }, (_, offset) => {
     const id = tick + offset;
     return { id, ...chat[id % chat.length] };
   });
 
   return (
     <>
-      <h3 className="text-sm font-semibold">Club Chat</h3>
-      <ul className="mt-5 flex h-40 flex-col justify-end gap-3 overflow-hidden">
-        <AnimatePresence initial={false} mode="popLayout">
-          {visible.map((message) => (
-            <motion.li
-              key={message.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5, ease }}
-              className="flex gap-3"
-            >
-              <Avatar name={message.name} className="size-6 text-[10px]" />
-              <p className="text-sm leading-snug text-paper/80">
-                <span className="font-medium text-paper">{message.name}</span> {message.text}
+      <CardHeader title="Club Chat" aside="5 online" />
+      <div className="mt-4 overflow-hidden" style={{ height: ROWS * ROW_PX }}>
+        <motion.ul
+          key={tick}
+          initial={{ y: 0 }}
+          animate={{ y: -ROW_PX }}
+          transition={{ duration: 0.6, ease }}
+        >
+          {lines.map((line) => (
+            <li key={line.id} className="flex h-11 items-center gap-3">
+              <Avatar name={line.name} className="size-6 text-[10px]" />
+              <p className="min-w-0 truncate text-sm text-paper/80">
+                <span className="font-medium text-paper">{line.name}</span> {line.text}
               </p>
-            </motion.li>
+            </li>
           ))}
-        </AnimatePresence>
-      </ul>
+        </motion.ul>
+      </div>
     </>
   );
 }
@@ -253,10 +266,10 @@ export function Community() {
       <div className="mx-auto w-full max-w-7xl px-5 py-24 sm:py-32">
         <ScrollGroup className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <h2 id="community-title" className="display text-4xl sm:text-5xl md:text-6xl">
-            <Words text="Fly With Other Pilots" />
+            <Words text="Your Club" />
           </h2>
           <Slide from="right" range={[0.3, 0.8]}>
-            <p className="max-w-xs text-lg text-muted">Join a club, see who is in the air, and plan flights together.</p>
+            <p className="max-w-xs text-lg text-muted">Join a club, follow every flight on the live map, and plan group flights.</p>
           </Slide>
         </ScrollGroup>
 

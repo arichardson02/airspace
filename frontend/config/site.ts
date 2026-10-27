@@ -4,7 +4,7 @@ export const siteConfig = {
   url: "https://airspace.club",
   title: "Airspace",
   description:
-    "Airspace is a career app for Microsoft Flight Simulator. Take jobs, rank up, and fly with other pilots. Every flight is logged automatically.",
+    "Jobs in any aircraft, a logbook that fills itself, and a club to share it with - all for Microsoft Flight Simulator.",
   discord: "https://discord.gg/airspace",
 };
 
@@ -15,7 +15,7 @@ export type Theme = "ink" | "paper";
 export const sections: { id: string; label: string; theme: Theme }[] = [
   { id: "home", label: "Home", theme: "ink" },
   { id: "features", label: "Features", theme: "paper" },
-  { id: "careers", label: "Careers", theme: "ink" },
+  { id: "tour", label: "Tour", theme: "ink" },
   { id: "community", label: "Community", theme: "paper" },
   { id: "download", label: "Download", theme: "ink" },
 ];

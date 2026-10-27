@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: siteConfig.title,
     description: siteConfig.description,
     url: siteConfig.url,
-    siteName: siteConfig.name,
+    // No siteName: the title is already the name, and link previews print both.
     type: "website",
   },
   twitter: {

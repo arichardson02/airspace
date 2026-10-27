@@ -31,5 +31,5 @@ scripts/              generates lib/world-dots.json for the hero map
 
 Scrolling goes through Lenis. Reveals follow the scrollbar (`components/scroll-group.tsx`),
 cycling content rolls through `components/roll-stack.tsx`, numbers glide through
-`components/counter.tsx`, and the How It Works scenes play on timers from `lib/use-phases.ts`.
+`components/counter.tsx`, and the Tour scenes play on timers from `lib/use-phases.ts`.
 All of it drops to a plain state when the visitor prefers reduced motion.

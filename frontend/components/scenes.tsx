@@ -7,7 +7,7 @@ import { Counter } from "@/components/counter";
 import { usePhases } from "@/lib/use-phases";
 import { cn } from "@/lib/utils";
 
-// The five How It Works scenes, each a page of the app that plays through its states while
+// The five Tour scenes, each a page of the app that plays through its states while
 // `active` and then holds. Remount one to replay it from the start.
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -281,7 +281,7 @@ export function FlyScene({ active }: { active: boolean }) {
   );
 }
 
-// 4. The debrief: landing graded, pay in, XP up, something unlocked.
+// 4. The debrief: landing graded, pay in, XP up, flight added to the logbook.
 const rankPhases = [1200, 1200, 1300] as const;
 
 export function RankScene({ active }: { active: boolean }) {
@@ -331,8 +331,8 @@ export function RankScene({ active }: { active: boolean }) {
 
       <At phase={phase} when={3} className="mt-2">
         <div className="flex items-center justify-between rounded-xl bg-paper px-4 py-3 text-ink">
-          <span className="text-sm font-medium">Unlocked · A320neo</span>
-          <span className="text-xs text-ink/60">Type rating earned</span>
+          <span className="text-sm font-medium">Added to your logbook</span>
+          <span className="text-xs text-ink/60">Flight 284</span>
         </div>
       </At>
     </>
@@ -415,7 +415,7 @@ export const steps = [
   },
   {
     title: "Rank Up",
-    body: "The landing is graded, the pay lands, the XP adds up, and the next aircraft unlocks.",
+    body: "The landing is graded, the pay lands, and the XP adds up toward the next rank.",
     url: "airspace.club/flights/1284",
     Scene: RankScene,
   },

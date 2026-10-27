@@ -5,9 +5,10 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/button";
 import { FlightMap } from "@/components/flight-map";
 import { INTRO_SECONDS } from "@/components/intro";
+import { siteConfig } from "@/config/site";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const words = "A Flight Sim Career You Fly With Friends.".split(" ");
+const words = "Wherever You're Parked, There's a Job.".split(" ");
 
 export function Hero() {
   // Everything waits for the intro curtain, unless there is no intro.
@@ -56,8 +57,7 @@ export function Hero() {
         </h1>
 
         <motion.p {...rise(0.7)} className="mt-7 max-w-xl text-lg leading-relaxed text-paper/65 sm:text-xl">
-          Jobs to fly, ranks to earn, and a club of pilots to fly them with. Built for
-          Microsoft Flight Simulator.
+          {siteConfig.description}
         </motion.p>
 
         <motion.div {...rise(0.85)} className="mt-10">
