@@ -38,3 +38,15 @@ variable "database_region" {
   type        = string
   default     = "nyc3"
 }
+
+variable "domain" {
+  description = "Custom domain for the app; www.<domain> is added as an alias."
+  type        = string
+  default     = "airspace.club"
+}
+
+variable "database_trusted_ips" {
+  description = "Developer IP addresses allowed to connect to the database directly. Set in terraform.tfvars, not committed."
+  type        = list(string)
+  default     = []
+}

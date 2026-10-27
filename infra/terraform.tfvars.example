@@ -4,3 +4,4 @@ github_repo = "your-github-user/fs-career-app"
 # instance_size   = "apps-s-1vcpu-0.5gb"
 # database_size   = "db-s-1vcpu-1gb"
 # database_region = "nyc3"
+# database_trusted_ips = ["203.0.113.10"]  # your public IP, for direct DB access

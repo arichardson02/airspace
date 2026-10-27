@@ -23,6 +23,18 @@ resource "digitalocean_app" "fs_career" {
     name   = var.app_name
     region = var.region
 
+    # DNS is hosted at Namecheap: @ is an ALIAS and www a CNAME to the app's default
+    # ondigitalocean.app hostname. App Platform issues the certificates.
+    domain {
+      name = var.domain
+      type = "PRIMARY"
+    }
+
+    domain {
+      name = "www.${var.domain}"
+      type = "ALIAS"
+    }
+
     # One domain: the frontend at /, the backend at /api with the prefix stripped,
     # so the backend still sees /v1/ingest and /health.
     ingress {
@@ -149,13 +161,21 @@ resource "digitalocean_database_db" "app" {
   name       = "fs_career"
 }
 
-# Only the app can connect to the database.
+# Only the app, plus any developer IPs in var.database_trusted_ips, can connect to the database.
 resource "digitalocean_database_firewall" "postgres" {
   cluster_id = digitalocean_database_cluster.postgres.id
 
   rule {
     type  = "app"
     value = digitalocean_app.fs_career.id
+  }
+
+  dynamic "rule" {
+    for_each = toset(var.database_trusted_ips)
+    content {
+      type  = "ip_addr"
+      value = rule.value
+    }
   }
 }
 
