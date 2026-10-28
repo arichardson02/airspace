@@ -99,8 +99,10 @@ export function watchControls(handle: SimConnectConnection): Controls {
     setBlocked(value) {
       if (value === blocked) return;
       blocked = value;
-      EVENTS.forEach((_, i) => {
+      EVENTS.forEach((name, i) => {
         handle.removeClientEvent(blocked ? WATCH_GROUP : BLOCK_GROUP, FIRST_CONTROL_EVENT + i);
+        // MSFS forgets the event's mapping once it's removed from a group, so map it again.
+        handle.mapClientEventToSimEvent(FIRST_CONTROL_EVENT + i, name);
         handle.addClientEventToNotificationGroup(blocked ? BLOCK_GROUP : WATCH_GROUP, FIRST_CONTROL_EVENT + i, blocked);
       });
       // Masking only works in a group with a maskable priority.
