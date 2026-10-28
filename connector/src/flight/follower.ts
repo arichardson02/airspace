@@ -23,6 +23,30 @@ const INTERPOLATED_KEYS = [
 
 type Blended = FlightState & Record<(typeof ANGLE_KEYS)[keyof typeof ANGLE_KEYS], number>;
 
+// When updates stop (a stutter on the flyer's sim or lost packets), the aircraft keeps moving the way the last two
+// states were going for up to this long, then holds until updates resume.
+const MAX_EXTRAPOLATION_MS = 500;
+const HEADINGS = ["heading", "headingGyro"] as const;
+
+interface Received {
+  time: number;
+  state: FlightState;
+}
+
+function extrapolate(previous: Received, latest: Received, aheadMs: number): FlightState {
+  const scale = aheadMs / (latest.time - previous.time);
+  const step = (key: keyof FlightState) => (latest.state[key] - previous.state[key]) * scale;
+  const state = { ...latest.state };
+  state.latitude += step("latitude");
+  state.longitude += step("longitude");
+  state.altitude += step("altitude");
+  for (const key of HEADINGS) {
+    const turn = ((latest.state[key] - previous.state[key] + 540) % 360) - 180;
+    state[key] = (latest.state[key] + turn * scale + 360) % 360;
+  }
+  return state;
+}
+
 export interface Follower {
   /** Freezes the aircraft so only the flyer's states move it. */
   start(): void;
@@ -49,11 +73,14 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
   };
 
   let interpolation: SnapshotInterpolation | undefined;
+  let previous: Received | undefined;
+  let latest: Received | undefined;
 
   return {
     start() {
       // A fresh buffer, so states from an earlier turn following aren't blended in.
       interpolation = new SnapshotInterpolation();
+      previous = latest = undefined;
       setFrozen(true);
     },
     stop() {
@@ -61,14 +88,29 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
       setFrozen(false);
     },
     receive(time, state) {
+      if (!interpolation) return;
       const entity = { id: "aircraft", ...state, p: state.pitch, b: state.bank, h: state.heading, g: state.headingGyro };
-      interpolation?.snapshot.add({ id: SnapshotInterpolation.NewId(), time, state: [entity] });
+      interpolation.snapshot.add({ id: SnapshotInterpolation.NewId(), time, state: [entity] });
+      // The fast channel can reorder; only newer states move the extrapolation on.
+      if (!latest || time > latest.time) {
+        previous = latest;
+        latest = { time, state };
+      }
     },
     onFrame() {
-      const snapshot = interpolation?.calcInterpolation(INTERPOLATED_KEYS);
-      if (!snapshot) return;
-      const blended = snapshot.state[0] as unknown as Blended;
-      write({ ...blended, pitch: blended.p, bank: blended.b, heading: blended.h, headingGyro: blended.g });
+      if (!interpolation) return;
+      const snapshot = interpolation.calcInterpolation(INTERPOLATED_KEYS);
+      if (snapshot) {
+        const blended = snapshot.state[0] as unknown as Blended;
+        write({ ...blended, pitch: blended.p, bank: blended.b, heading: blended.h, headingGyro: blended.g });
+        return;
+      }
+
+      // Nothing to blend: either still filling the buffer, or the updates have run out.
+      if (!previous || !latest) return;
+      const target = SnapshotInterpolation.Now() - interpolation.timeOffset - interpolation.interpolationBuffer.get();
+      const aheadMs = Math.min(target - latest.time, MAX_EXTRAPOLATION_MS);
+      if (aheadMs > 0) write(extrapolate(previous, latest, aheadMs));
     },
   };
 }
