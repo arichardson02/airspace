@@ -35,6 +35,8 @@ export interface FlightState {
   elevator: number;
   aileron: number;
   rudder: number;
+  throttle1: number;
+  throttle2: number;
 }
 
 // Sent directly between the two pilots' connectors during a co-op flight.

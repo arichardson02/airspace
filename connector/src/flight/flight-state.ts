@@ -30,6 +30,9 @@ const FLIGHT_SIMVARS: [key: keyof FlightState, name: string, unit: string][] = [
   ["elevator", "ELEVATOR POSITION", "position"],
   ["aileron", "AILERON POSITION", "position"],
   ["rudder", "RUDDER POSITION", "position"],
+  // The pilot flying sets the power, so the follower's levers and engines match.
+  ["throttle1", "GENERAL ENG THROTTLE LEVER POSITION:1", "percent"],
+  ["throttle2", "GENERAL ENG THROTTLE LEVER POSITION:2", "percent"],
 ];
 
 export const FLIGHT_KEYS = FLIGHT_SIMVARS.map(([key]) => key);
