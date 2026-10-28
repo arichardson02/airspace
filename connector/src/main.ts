@@ -1,10 +1,14 @@
 import { open, Protocol, SimConnectException } from "node-simconnect";
 import { BackendClient } from "./backend-client.js";
 import { config } from "./config.js";
+import { startGroupFlight } from "./group/group-flight.js";
+import { trackPosition } from "./track/position-tracker.js";
 
 const backend = new BackendClient(config.backendUrl, config.flushIntervalMs);
+let leaveGroup: (() => void) | undefined;
 
 async function shutdown(exitCode: number): Promise<never> {
+  leaveGroup?.();
   await backend.stop();
   process.exit(exitCode);
 }
@@ -27,6 +31,9 @@ async function main(): Promise<void> {
       versionMinor: recvOpen.applicationVersionMinor,
     },
   });
+
+  // trackPosition(handle, backend);
+  if (config.groupCode) leaveGroup = await startGroupFlight(handle, { ...config, groupCode: config.groupCode });
 
   handle.on("exception", (ex) => {
     console.warn(`SimConnect exception: ${SimConnectException[ex.exception]}`);

@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@fs-career/contracts": "link:../contracts",
+    "@geckos.io/snapshot-interpolation": "^1.1.1",
     "@orpc/client": "^1.16.1",
     "@orpc/openapi-client": "^1.16.1",
+    "node-datachannel": "^0.33.5",
     "node-simconnect": "^4.2.1"
   },
   "packageManager": "pnpm@12.15.0"
