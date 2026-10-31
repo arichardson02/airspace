@@ -9,7 +9,7 @@ export class HelloIngestHandler implements IngestHandler<'connector.hello'> {
 
   async handle(
     messages: MessageOf<'connector.hello'>[],
-    { tx, connectorSessionId, receivedAt }: IngestContext,
+    { tx, connectorSessionId, userId, receivedAt }: IngestContext,
   ): Promise<void> {
     const [hello] = messages;
 
@@ -17,6 +17,7 @@ export class HelloIngestHandler implements IngestHandler<'connector.hello'> {
       .insert(connectorSessions)
       .values({
         id: connectorSessionId,
+        userId,
         connectorVersion: hello.payload.connectorVersion,
         simName: hello.payload.sim.name,
         simVersionMajor: hello.payload.sim.versionMajor,

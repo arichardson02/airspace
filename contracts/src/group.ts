@@ -1,14 +1,17 @@
 // Signaling for peer-to-peer co-op groups. Group data goes directly between connectors, never through the server.
 
+/** A signed-in pilot. The server fills this in from their session, so it can't be spoofed. */
 export interface GroupPeer {
+  /** The pilot's user id. */
   pilotId: string;
+  name: string;
 }
 
 // WebRTC handshake payloads relayed between two connectors.
 export type Signal = { sdp: string; type: string } | { candidate: string; mid: string };
 
 export type ClientSignalingMessage =
-  | { type: "join"; groupCode: string; peer: GroupPeer }
+  | { type: "join"; groupCode: string }
   | { type: "signal"; to: string; signal: Signal };
 
 export type ServerSignalingMessage =
@@ -32,7 +35,7 @@ export interface FlightState {
   velocityBodyZ: number;
   velocityWorldX: number;
   velocityWorldZ: number;
-  elevator: number;
+  elevator: number; 
   aileron: number;
   rudder: number;
   throttle1: number;

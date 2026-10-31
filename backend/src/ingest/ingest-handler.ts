@@ -8,6 +8,8 @@ export type MessageOf<T extends ConnectorMessageType> = Extract<ConnectorMessage
 export interface IngestContext {
   tx: Transaction;
   connectorSessionId: string;
+  /** The signed-in pilot sending the batch. */
+  userId: string;
   receivedAt: Date;
 }
 

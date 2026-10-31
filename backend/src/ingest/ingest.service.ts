@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   connectorMessageSchema,
   type ConnectorMessage,
@@ -41,7 +41,7 @@ export class IngestService implements OnModuleInit {
     }
   }
 
-  async ingest(batch: IngestBatch): Promise<number> {
+  async ingest(batch: IngestBatch, userId: string): Promise<number> {
     const messagesByType = new Map<ConnectorMessageType, ConnectorMessage[]>();
     for (const message of [...batch.messages].sort((a, b) => a.seq - b.seq)) {
       const group = messagesByType.get(message.type) ?? [];
@@ -53,6 +53,7 @@ export class IngestService implements OnModuleInit {
       const context: IngestContext = {
         tx,
         connectorSessionId: batch.connectorSessionId,
+        userId,
         receivedAt: new Date(),
       };
 
@@ -61,12 +62,12 @@ export class IngestService implements OnModuleInit {
       const [session] = await tx
         .update(connectorSessions)
         .set({ lastSeenAt: context.receivedAt })
-        .where(eq(connectorSessions.id, context.connectorSessionId))
+        .where(and(eq(connectorSessions.id, context.connectorSessionId), eq(connectorSessions.userId, userId)))
         .returning({ id: connectorSessions.id });
 
       if (!session) {
-        // Retrying can't fix a session we never saw a hello for, so drop the batch instead of
-        // failing and leaving the connector stuck resending it.
+        // Retrying can't fix a session we never saw a hello for (or one another pilot owns), so
+        // drop the batch instead of failing and leaving the connector stuck resending it.
         this.logger.warn(
           `Dropped ${batch.messages.length} message(s) for unknown session ${context.connectorSessionId}`,
         );
