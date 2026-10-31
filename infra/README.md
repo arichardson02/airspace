@@ -40,6 +40,19 @@ terraform apply
 After the first apply, `terraform output connector_backend_url` gives the value for the
 connector's `BACKEND_URL`.
 
+## Sign-in (Better Auth)
+
+Accounts live in the app's own Postgres; the backend serves sign-in at `/api/auth`. It needs two
+secrets in `terraform.tfvars`:
+
+- `better_auth_secret`: generate with `openssl rand -base64 32`. Changing it signs everyone out.
+- `resend_api_key`: from [Resend](https://resend.com). Add `airspace.club` as a domain there and
+  create the DNS records it lists (SPF/DKIM) at Namecheap, so emails from
+  `no-reply@airspace.club` are delivered.
+
+The backend env is in `ignore_changes` (see the comment in `main.tf`), so new or changed backend
+env vars only reach the app if you remove that block, apply, and put it back.
+
 ## Local checks without credentials
 
 ```sh

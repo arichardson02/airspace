@@ -5,3 +5,7 @@ github_repo = "your-github-user/fs-career-app"
 # database_size   = "db-s-1vcpu-1gb"
 # database_region = "nyc3"
 # database_trusted_ips = ["203.0.113.10"]  # your public IP, for direct DB access
+
+# Secrets for sign-in (keep them out of git: *.tfvars is ignored).
+better_auth_secret = "output of: openssl rand -base64 32"
+resend_api_key     = "re_..."

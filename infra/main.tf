@@ -16,6 +16,11 @@ locals {
     )
     DATABASE_CA_CERT = data.digitalocean_database_ca.postgres.certificate
   }
+
+  backend_secret_envs = merge(local.database_envs, {
+    BETTER_AUTH_SECRET = var.better_auth_secret
+    RESEND_API_KEY     = var.resend_api_key
+  })
 }
 
 resource "digitalocean_app" "fs_career" {
@@ -35,8 +40,8 @@ resource "digitalocean_app" "fs_career" {
       type = "ALIAS"
     }
 
-    # One domain: the frontend at /, the backend at /api with the prefix stripped,
-    # so the backend still sees /v1/ingest and /health.
+    # One domain: the frontend at /, the backend at /api. The backend serves everything under
+    # /api itself, because Better Auth matches its routes on the full path (/api/auth/*).
     ingress {
       rule {
         match {
@@ -46,7 +51,7 @@ resource "digitalocean_app" "fs_career" {
         }
         component {
           name                 = "backend"
-          preserve_path_prefix = false
+          preserve_path_prefix = true
         }
       }
 
@@ -77,17 +82,24 @@ resource "digitalocean_app" "fs_career" {
       }
 
       health_check {
-        http_path = "/health"
+        http_path = "/api/health"
       }
 
       dynamic "env" {
-        for_each = local.database_envs
+        for_each = local.backend_secret_envs
         content {
           key   = env.key
           value = env.value
           scope = "RUN_TIME"
           type  = "SECRET"
         }
+      }
+
+      # The public origin sign-in links and cookies are issued for.
+      env {
+        key   = "BETTER_AUTH_URL"
+        value = "https://${var.domain}"
+        scope = "RUN_TIME"
       }
     }
 
@@ -103,6 +115,13 @@ resource "digitalocean_app" "fs_career" {
         repo           = var.github_repo
         branch         = var.branch
         deploy_on_push = true
+      }
+
+      # Server-rendered pages check the session with the backend through the public URL.
+      env {
+        key   = "BACKEND_URL"
+        value = "https://${var.domain}"
+        scope = "RUN_TIME"
       }
     }
 
@@ -136,8 +155,8 @@ resource "digitalocean_app" "fs_career" {
 
   lifecycle {
     # DigitalOcean only returns SECRET env values encrypted (EV[...]), so Terraform would see a
-    # change on every plan. If the database password or cluster changes, remove this, apply,
-    # and put it back.
+    # change on every plan. If the database password, cluster, auth secret or Resend key changes
+    # (or a backend env var is added), remove this, apply, and put it back.
     ignore_changes = [
       spec[0].service[0].env, # backend
       spec[0].job[0].env,     # migrate

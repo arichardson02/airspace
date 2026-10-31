@@ -50,3 +50,15 @@ variable "database_trusted_ips" {
   type        = list(string)
   default     = []
 }
+
+variable "better_auth_secret" {
+  description = "Secret Better Auth signs sessions and tokens with. Generate with: openssl rand -base64 32. Set in terraform.tfvars, not committed."
+  type        = string
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key for verification and password reset emails. Set in terraform.tfvars, not committed."
+  type        = string
+  sensitive   = true
+}
