@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import "@fs-career/ui/theme.css";
+
+/* Inter from the shared design package, the same files the website uses. */
+@font-face {
+  font-family: "Inter";
+  src: url("../node_modules/@fs-career/ui/fonts/Inter-Regular.woff2") format("woff2");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../node_modules/@fs-career/ui/fonts/Inter-Medium.woff2") format("woff2");
+  font-weight: 500;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../node_modules/@fs-career/ui/fonts/Inter-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../node_modules/@fs-career/ui/fonts/Inter-Bold.woff2") format("woff2");
+  font-weight: 700;
+}
+
+@layer base {
+  :root {
+    --font-inter: "Inter";
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink font-sans text-paper antialiased;
+    text-rendering: optimizeLegibility;
+    /* An app, not a document: text isn't selectable unless a component says so. */
+    user-select: none;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+}
+
+/* Parts of the custom title bar that move the window; buttons inside opt back out. */
+@utility drag {
+  -webkit-app-region: drag;
+}
+
+@utility no-drag {
+  -webkit-app-region: no-drag;
+}

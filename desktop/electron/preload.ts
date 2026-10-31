@@ -1,0 +1,19 @@
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import type { ConnectorCommand, ConnectorStatus } from "@fs-career/contracts";
+
+/** What the window can do, exposed as `window.airspace`. The page never gets Node or Electron itself. */
+const airspace = {
+  status: (): Promise<ConnectorStatus> => ipcRenderer.invoke("connector:status"),
+  onStatus(listener: (status: ConnectorStatus) => void): () => void {
+    const handler = (_event: IpcRendererEvent, status: ConnectorStatus) => listener(status);
+    ipcRenderer.on("connector:status", handler);
+    return () => ipcRenderer.off("connector:status", handler);
+  },
+  send: (command: ConnectorCommand) => ipcRenderer.send("connector:command", command),
+  minimize: () => ipcRenderer.send("window:minimize"),
+  close: () => ipcRenderer.send("window:close"),
+};
+
+export type AirspaceBridge = typeof airspace;
+
+contextBridge.exposeInMainWorld("airspace", airspace);
