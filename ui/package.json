@@ -1,0 +1,41 @@
+{
+  "name": "@fs-career/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Airspace design shared by the website and the desktop app: theme tokens, fonts and base components.",
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./fonts/*": "./fonts/*",
+    "./button": "./src/button.tsx",
+    "./cn": "./src/cn.ts",
+    "./field": "./src/field.tsx",
+    "./logo": "./src/logo.tsx",
+    "./mark": "./src/mark.tsx",
+    "./panel": "./src/panel.tsx"
+  },
+  "files": [
+    "theme.css",
+    "fonts",
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "peerDependencies": {
+    "framer-motion": "^14.6.0",
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "framer-motion": "^14.6.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

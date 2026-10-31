@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   // Bundles only the files needed to run into .next/standalone, for a small Docker image.
   output: "standalone",
+  // The shared design package ships TypeScript source.
+  transpilePackages: ["@fs-career/ui"],
+  // The repo-wide AGENTS.md carries the Next.js guidance; don't let `next dev` add a second one here.
+  agentRules: false,
   cacheComponents: true,
   partialPrefetching: true,
   // In production App Platform routes /api to the backend before it reaches Next. In dev this

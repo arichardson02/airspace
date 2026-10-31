@@ -1,19 +1,6 @@
 @import "tailwindcss";
 @import "lenis/dist/lenis.css";
-
-@theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-
-  /* Branding/brand.toml. Airspace is monotone: emphasis is weight, size or inversion,
-     never a second color. */
-  --color-ink: #0b0d10;
-  --color-paper: #f6f7f9;
-  --color-muted: #8a8f98;
-  --color-line: #22262c;
-
-  --tracking-display: -0.03em;
-  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-}
+@import "@fs-career/ui/theme.css";
 
 @layer base {
   html {
@@ -29,9 +16,4 @@
     background: var(--color-ink);
     color: var(--color-paper);
   }
-}
-
-@utility display {
-  @apply font-semibold tracking-display;
-  text-wrap: balance;
 }
