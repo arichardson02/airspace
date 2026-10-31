@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createORPCClient } from "@orpc/client";
+import { createORPCClient, ORPCError } from "@orpc/client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
 import {
   contract,
@@ -25,9 +25,18 @@ export class BackendClient {
   private seq = 0;
   private flushing: Promise<void> | undefined;
   private timer: NodeJS.Timeout | undefined;
+  private signedOut = false;
 
-  constructor(backendUrl: string, private readonly flushIntervalMs: number) {
-    this.client = createORPCClient(new OpenAPILink(contract, { url: backendUrl }));
+  /** `onSignedOut` runs once if the backend rejects the token, e.g. after the pilot signed out everywhere. */
+  constructor(
+    backendUrl: string,
+    private readonly flushIntervalMs: number,
+    token: string,
+    private readonly onSignedOut: () => void,
+  ) {
+    this.client = createORPCClient(
+      new OpenAPILink(contract, { url: backendUrl, headers: { authorization: `Bearer ${token}` } }),
+    );
   }
 
   start(): void {
@@ -57,12 +66,17 @@ export class BackendClient {
   }
 
   private async sendQueued(): Promise<void> {
-    while (this.queue.length > 0) {
+    while (this.queue.length > 0 && !this.signedOut) {
       const messages = this.queue.slice(0, MAX_BATCH_SIZE);
 
       try {
         await this.client.ingest.batch({ connectorSessionId: this.sessionId, messages });
       } catch (err) {
+        if (err instanceof ORPCError && err.status === 401) {
+          this.signedOut = true;
+          this.onSignedOut();
+          return;
+        }
         console.warn(
           `Backend unreachable, ${this.queue.length} message(s) queued:`,
           err instanceof Error ? err.message : err,

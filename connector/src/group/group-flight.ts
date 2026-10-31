@@ -1,5 +1,5 @@
 import type { SimConnectConnection } from "node-simconnect";
-import type { CoopMessage } from "@fs-career/contracts";
+import type { CoopMessage, GroupPeer } from "@fs-career/contracts";
 import { watchControls } from "../flight/controls.js";
 import { connectFlightState } from "../flight/flight-state.js";
 import { createFollower } from "../flight/follower.js";
@@ -8,7 +8,9 @@ import { type GroupSession, joinGroup } from "./group-session.js";
 interface GroupFlightOptions {
   signalingUrl: string;
   groupCode: string;
-  pilotId: string;
+  token: string;
+  /** The signed-in pilot; their user ID is the pilot ID. */
+  pilot: GroupPeer;
 }
 
 const SEND_INTERVAL_MS = 1000 / 60;
@@ -23,7 +25,9 @@ export async function startGroupFlight(
   handle: SimConnectConnection,
   options: GroupFlightOptions,
 ): Promise<() => void> {
-  const self = options.pilotId;
+  const self = options.pilot.pilotId;
+  // Pilot IDs are user IDs; logs show names instead.
+  const names = new Map([[self, options.pilot.name]]);
   // Peers only connect after the join is sent, by which time the session is assigned.
   let session: GroupSession | undefined;
   let flyer = self;
@@ -76,20 +80,21 @@ export async function startGroupFlight(
     controls.setBlocked(!flying);
     if (flying) follower.stop();
     else follower.start();
-    console.log(flying ? "You have control" : `${flyer} has control`);
+    console.log(flying ? "You have control" : `${names.get(flyer) ?? flyer} has control`);
   }
 
   // Never leave the aircraft frozen from an earlier run.
   follower.stop();
 
-  session = await joinGroup(options.signalingUrl, options.groupCode, { pilotId: self }, {
-    onPeerConnected: (pilotId, joinedBeforeUs) => {
-      console.log(`Connected to ${pilotId}`);
+  session = await joinGroup(options.signalingUrl, options.groupCode, options.token, options.pilot, {
+    onPeerConnected: (peer, joinedBeforeUs) => {
+      names.set(peer.pilotId, peer.name);
+      console.log(`Connected to ${peer.name}`);
       // The pilot already in the group keeps flying; the newcomer follows.
-      if (joinedBeforeUs) setFlyer(pilotId, 0);
+      if (joinedBeforeUs) setFlyer(peer.pilotId, 0);
     },
     onPeerLeft: (pilotId) => {
-      console.log(`${pilotId} left the group`);
+      console.log(`${names.get(pilotId) ?? pilotId} left the group`);
       setFlyer(self, 0);
     },
     onMessage: (pilotId, raw) => {
@@ -113,7 +118,7 @@ export async function startGroupFlight(
     },
   });
 
-  console.log(`Joined group ${options.groupCode} as ${self}`);
+  console.log(`Joined group ${options.groupCode} as ${options.pilot.name}`);
   return () => {
     session.leave();
     setFlyer(self, 0);

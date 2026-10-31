@@ -4,7 +4,7 @@ import type { ClientSignalingMessage, GroupPeer, ServerSignalingMessage } from "
 const ICE_SERVERS = ["stun:stun.l.google.com:19302"];
 
 export interface GroupHandlers {
-  onPeerConnected(pilotId: string, joinedBeforeUs: boolean): void;
+  onPeerConnected(peer: GroupPeer, joinedBeforeUs: boolean): void;
   onPeerLeft(pilotId: string): void;
   onMessage(pilotId: string, message: unknown): void;
 }
@@ -15,14 +15,21 @@ export interface GroupSession {
   leave(): void;
 }
 
-/** Joins a group through the signaling server, then exchanges JSON messages directly with every peer over WebRTC. */
+/**
+ * Joins a group through the signaling server, then exchanges JSON messages directly with every peer over WebRTC.
+ * The server knows who we are from the session token, and tells every peer.
+ */
 export async function joinGroup(
   signalingUrl: string,
   groupCode: string,
+  token: string,
   self: GroupPeer,
   handlers: GroupHandlers,
 ): Promise<GroupSession> {
-  const socket = new WebSocket(signalingUrl);
+  // Node's WebSocket (undici) accepts headers, unlike the browser's, so the upgrade request carries the
+  // token. @types/node only declares the protocols form of this argument.
+  const init = { headers: { authorization: `Bearer ${token}` } };
+  const socket = new WebSocket(signalingUrl, init as unknown as ConstructorParameters<typeof WebSocket>[1]);
   const connections = new Map<string, PeerConnection>();
   const channels = new Map<string, DataChannel>();
   const fastChannels = new Map<string, DataChannel>();
@@ -44,13 +51,13 @@ export async function joinGroup(
     // "data" is reliable and ordered, so nothing sent is lost or reordered.
     if (initiator) {
       const channel = connection.createDataChannel("data");
-      channel.onOpen(() => handlers.onPeerConnected(peer.pilotId, true));
+      channel.onOpen(() => handlers.onPeerConnected(peer, true));
       attach(channel);
       attach(connection.createDataChannel("fast", { unordered: true, maxRetransmits: 0 }));
     } else {
       connection.onDataChannel((channel) => {
         attach(channel);
-        if (channel.getLabel() === "data") handlers.onPeerConnected(peer.pilotId, false);
+        if (channel.getLabel() === "data") handlers.onPeerConnected(peer, false);
       });
     }
   };
@@ -89,11 +96,16 @@ export async function joinGroup(
     }
   });
 
+  socket.addEventListener("close", (event) => {
+    // 4401: the session is gone. 4409: the same pilot joined from somewhere else.
+    if (event.code === 4401 || event.code === 4409) console.warn(`Left the group: ${event.reason}`);
+  });
+
   await new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
     socket.addEventListener("error", reject, { once: true });
   });
-  send({ type: "join", groupCode, peer: self });
+  send({ type: "join", groupCode });
 
   return {
     broadcast(message, options) {

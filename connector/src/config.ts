@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 try {
   // Loads connector/.env when present; real environment variables take precedence.
   process.loadEnvFile();
@@ -7,7 +5,8 @@ try {
   // No .env file, fall back to the environment and defaults.
 }
 
-const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
+// Everything the backend serves is under /api, including sign-in (/api/auth).
+const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000/api";
 
 export const config = {
   appName: "fs-career-connector",
@@ -16,6 +15,5 @@ export const config = {
   flushIntervalMs: 2_000,
   // Group flights are joined only when GROUP_CODE is set.
   groupCode: process.env.GROUP_CODE,
-  pilotId: process.env.PILOT_ID ?? `pilot-${randomUUID().slice(0, 4)}`,
   signalingUrl: `${backendUrl.replace(/^http/, "ws")}/group`,
 };
