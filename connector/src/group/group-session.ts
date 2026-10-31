@@ -7,6 +7,8 @@ export interface GroupHandlers {
   onPeerConnected(peer: GroupPeer, joinedBeforeUs: boolean): void;
   onPeerLeft(pilotId: string): void;
   onMessage(pilotId: string, message: unknown): void;
+  /** The signaling server dropped us, e.g. because the session ended or the pilot joined elsewhere. */
+  onClosed(reason: string): void;
 }
 
 export interface GroupSession {
@@ -40,11 +42,19 @@ export async function joinGroup(
     const connection = new nodeDataChannel.PeerConnection(self.pilotId, { iceServers: ICE_SERVERS });
     connections.set(peer.pilotId, connection);
     connection.onLocalDescription((sdp, type) => send({ type: "signal", to: peer.pilotId, signal: { sdp, type } }));
-    connection.onLocalCandidate((candidate, mid) => send({ type: "signal", to: peer.pilotId, signal: { candidate, mid } }));
+    connection.onLocalCandidate((candidate, mid) =>
+      send({ type: "signal", to: peer.pilotId, signal: { candidate, mid } }),
+    );
 
     const attach = (channel: DataChannel) => {
       (channel.getLabel() === "fast" ? fastChannels : channels).set(peer.pilotId, channel);
-      channel.onMessage((message) => handlers.onMessage(peer.pilotId, JSON.parse(String(message))));
+      // Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
+      channel.onMessage((message) =>
+        handlers.onMessage(
+          peer.pilotId,
+          JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message)),
+        ),
+      );
     };
 
     // The newcomer opens the channels to every existing member, so two peers never both send an offer.
@@ -96,15 +106,23 @@ export async function joinGroup(
     }
   });
 
-  socket.addEventListener("close", (event) => {
-    // 4401: the session is gone. 4409: the same pilot joined from somewhere else.
-    if (event.code === 4401 || event.code === 4409) console.warn(`Left the group: ${event.reason}`);
+  let leaving = false;
+  const opened = new Promise((resolve, reject) => {
+    socket.addEventListener("open", resolve, { once: true });
+    socket.addEventListener("error", () => reject(new Error("Couldn't reach the co-op server")), { once: true });
   });
 
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", reject, { once: true });
+  socket.addEventListener("close", (event) => {
+    if (leaving) return;
+    // 4401: the session is gone. 4409: the same pilot joined from somewhere else.
+    const reason =
+      event.code === 4401 || event.code === 4409 ? event.reason : "Lost the connection to the co-op server";
+    console.warn(`Left the group: ${reason}`);
+    for (const pilotId of connections.keys()) disconnect(pilotId);
+    handlers.onClosed(reason);
   });
+
+  await opened;
   send({ type: "join", groupCode });
 
   return {
@@ -115,7 +133,8 @@ export async function joinGroup(
       }
     },
     leave() {
-      for (const pilotId of [...connections.keys()]) disconnect(pilotId);
+      leaving = true;
+      for (const pilotId of connections.keys()) disconnect(pilotId);
       socket.close();
       nodeDataChannel.cleanup();
     },

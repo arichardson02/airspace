@@ -11,8 +11,7 @@ export interface GroupPeer {
 export type Signal = { sdp: string; type: string } | { candidate: string; mid: string };
 
 export type ClientSignalingMessage =
-  | { type: "join"; groupCode: string }
-  | { type: "signal"; to: string; signal: Signal };
+  { type: "join"; groupCode: string } | { type: "signal"; to: string; signal: Signal };
 
 export type ServerSignalingMessage =
   | { type: "peers"; peers: GroupPeer[] }
@@ -35,7 +34,7 @@ export interface FlightState {
   velocityBodyZ: number;
   velocityWorldX: number;
   velocityWorldZ: number;
-  elevator: number; 
+  elevator: number;
   aileron: number;
   rudder: number;
   throttle1: number;

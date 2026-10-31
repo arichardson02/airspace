@@ -2,6 +2,7 @@ import { oc, type ContractRouterClient } from "@orpc/contract";
 import { z } from "zod";
 import { ingestBatchSchema } from "./messages.js";
 
+export * from "./desktop.js";
 export * from "./group.js";
 export * from "./messages.js";
 

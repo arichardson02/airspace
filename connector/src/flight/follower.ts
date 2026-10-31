@@ -1,10 +1,5 @@
 import { SnapshotInterpolation } from "@geckos.io/snapshot-interpolation";
-import {
-  EventFlag,
-  SimConnectConstants,
-  type NotificationPriority,
-  type SimConnectConnection,
-} from "node-simconnect";
+import { EventFlag, SimConnectConstants, type NotificationPriority, type SimConnectConnection } from "node-simconnect";
 import type { FlightState } from "@fs-career/contracts";
 import { FLIGHT_KEYS } from "./flight-state.js";
 
@@ -89,7 +84,14 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
     },
     receive(time, state) {
       if (!interpolation) return;
-      const entity = { id: "aircraft", ...state, p: state.pitch, b: state.bank, h: state.heading, g: state.headingGyro };
+      const entity = {
+        id: "aircraft",
+        ...state,
+        p: state.pitch,
+        b: state.bank,
+        h: state.heading,
+        g: state.headingGyro,
+      };
       interpolation.snapshot.add({ id: SnapshotInterpolation.NewId(), time, state: [entity] });
       // The fast channel can reorder; only newer states move the extrapolation on.
       if (!latest || time > latest.time) {

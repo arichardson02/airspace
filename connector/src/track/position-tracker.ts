@@ -1,9 +1,4 @@
-import {
-  SimConnectConstants,
-  SimConnectDataType,
-  SimConnectPeriod,
-  type SimConnectConnection,
-} from "node-simconnect";
+import { SimConnectConstants, SimConnectDataType, SimConnectPeriod, type SimConnectConnection } from "node-simconnect";
 import type { BackendClient } from "../backend-client.js";
 
 const POSITION_DEFINITION = 1;

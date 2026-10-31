@@ -37,11 +37,18 @@ const FLIGHT_SIMVARS: [key: keyof FlightState, name: string, unit: string][] = [
 
 export const FLIGHT_KEYS = FLIGHT_SIMVARS.map(([key]) => key);
 
-/** Reads the user aircraft's flight state every sim frame, and returns a function that writes a state into it. */
+export interface FlightStateLink {
+  /** Writes a state into the user aircraft. */
+  write: (state: FlightState) => void;
+  /** Starts or stops reading the flight state every sim frame. */
+  setReading(reading: boolean): void;
+}
+
+/** Reads the user aircraft's flight state every sim frame while reading, and writes states into it. */
 export function connectFlightState(
   handle: SimConnectConnection,
   onFrame: (state: FlightState) => void,
-): (state: FlightState) => void {
+): FlightStateLink {
   for (const [, name, unit] of FLIGHT_SIMVARS) {
     handle.addToDataDefinition(FLIGHT_DEFINITION, name, unit, SimConnectDataType.FLOAT64);
   }
@@ -54,21 +61,24 @@ export function connectFlightState(
     onFrame(state);
   });
 
-  handle.requestDataOnSimObject(
-    FLIGHT_REQUEST,
-    FLIGHT_DEFINITION,
-    SimConnectConstants.OBJECT_ID_USER,
-    SimConnectPeriod.SIM_FRAME,
-  );
-
   const buffer = new RawBuffer(FLIGHT_SIMVARS.length * 8);
-  return (state) => {
-    buffer.clear();
-    for (const [key] of FLIGHT_SIMVARS) buffer.writeFloat64(state[key]);
-    handle.setDataOnSimObject(FLIGHT_DEFINITION, SimConnectConstants.OBJECT_ID_USER, {
-      buffer,
-      arrayCount: 0,
-      tagged: false,
-    });
+  return {
+    write(state) {
+      buffer.clear();
+      for (const [key] of FLIGHT_SIMVARS) buffer.writeFloat64(state[key]);
+      handle.setDataOnSimObject(FLIGHT_DEFINITION, SimConnectConstants.OBJECT_ID_USER, {
+        buffer,
+        arrayCount: 0,
+        tagged: false,
+      });
+    },
+    setReading(reading) {
+      handle.requestDataOnSimObject(
+        FLIGHT_REQUEST,
+        FLIGHT_DEFINITION,
+        SimConnectConstants.OBJECT_ID_USER,
+        reading ? SimConnectPeriod.SIM_FRAME : SimConnectPeriod.NEVER,
+      );
+    },
   };
 }

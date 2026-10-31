@@ -1,12 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createORPCClient, ORPCError } from "@orpc/client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
-import {
-  contract,
-  type ApiClient,
-  type ConnectorMessage,
-  type ConnectorMessageType,
-} from "@fs-career/contracts";
+import { contract, type ApiClient, type ConnectorMessage, type ConnectorMessageType } from "@fs-career/contracts";
 
 type PayloadOf<T extends ConnectorMessageType> = Extract<ConnectorMessage, { type: T }>["payload"];
 
