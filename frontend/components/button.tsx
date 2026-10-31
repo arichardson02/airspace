@@ -32,16 +32,45 @@ const sizes = {
   md: "h-12 px-6 text-[15px]",
 };
 
+const press = {
+  whileHover: { y: -1 },
+  whileTap: { scale: 0.97 },
+  transition: { type: "spring", stiffness: 500, damping: 30 },
+} as const;
+
 export function Button({ href, children, variant = "ink", size = "md", className }: ButtonProps) {
   return (
-    <MotionLink
-      href={href}
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className={cn(base, variants[variant], sizes[size], className)}
-    >
+    <MotionLink href={href} {...press} className={cn(base, variants[variant], sizes[size], className)}>
       {children}
     </MotionLink>
+  );
+}
+
+interface ActionButtonProps extends Omit<ButtonProps, "href"> {
+  type?: "button" | "submit";
+  disabled?: boolean;
+  onClick?: () => void;
+}
+
+// The same look as Button, for submitting forms and other actions that aren't links.
+export function ActionButton({
+  children,
+  variant = "ink",
+  size = "md",
+  className,
+  type = "button",
+  disabled,
+  onClick,
+}: ActionButtonProps) {
+  return (
+    <motion.button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      {...(disabled ? {} : press)}
+      className={cn(base, variants[variant], sizes[size], "disabled:cursor-not-allowed disabled:opacity-50", className)}
+    >
+      {children}
+    </motion.button>
   );
 }
