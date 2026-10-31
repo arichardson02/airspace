@@ -1,0 +1,11 @@
+# Generated or installed files.
+**/node_modules/
+**/dist/
+**/.next/
+desktop/release/
+backend/drizzle/
+**/pnpm-lock.yaml
+**/next-env.d.ts
+infra/
+# Generated map data (frontend/scripts).
+frontend/lib/world-dots.json

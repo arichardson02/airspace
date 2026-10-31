@@ -1,0 +1,16 @@
+{
+  "name": "fs-career",
+  "private": true,
+  "description": "Repo-wide tooling only. Each package installs and builds on its own.",
+  "scripts": {
+    "lint": "oxlint --type-aware",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "packageManager": "pnpm@12.15.0",
+  "devDependencies": {
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
+    "prettier": "^3.9.10"
+  }
+}

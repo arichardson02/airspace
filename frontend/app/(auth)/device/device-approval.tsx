@@ -100,8 +100,8 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
       title="Sign in the connector?"
       subtitle={
         <>
-          The Airspace Connector wants to sign in as <span className="font-medium text-paper">{email}</span>. It will send
-          your flights and join co-op groups as you.
+          The Airspace Connector wants to sign in as <span className="font-medium text-paper">{email}</span>. It will
+          send your flights and join co-op groups as you.
         </>
       }
     >

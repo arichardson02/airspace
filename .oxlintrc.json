@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/.next/**",
+    "**/node_modules/**",
+    "desktop/release/**",
+    "backend/drizzle/**",
+    "**/next-env.d.ts"
+  ],
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/no-floating-promises": "error"
+  },
+  "overrides": [
+    {
+      "files": ["backend/**", "connector/**", "contracts/**", "desktop/electron/**", "**/scripts/**", "**/*.config.*"],
+      "env": { "node": true }
+    },
+    {
+      "files": ["frontend/**", "desktop/src/**", "ui/**"],
+      "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y"],
+      "env": { "browser": true },
+      "rules": {
+        "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "warn"
+      }
+    },
+    {
+      "files": ["frontend/**"],
+      "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y", "nextjs"],
+      "env": { "node": true }
+    }
+  ]
+}

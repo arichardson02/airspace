@@ -1,7 +1,7 @@
-import { Logger } from '@nestjs/common';
-import { Resend } from 'resend';
+import { Logger } from "@nestjs/common";
+import { Resend } from "resend";
 
-const FROM = 'Airspace <no-reply@airspace.club>';
+const FROM = "Airspace <no-reply@airspace.club>";
 
 export interface Email {
   to: string;
@@ -18,7 +18,7 @@ export type SendEmail = (email: Email) => void;
  * so sign-up and password reset still work end to end.
  */
 export function createEmailSender(apiKey: string | undefined): SendEmail {
-  const logger = new Logger('Email');
+  const logger = new Logger("Email");
 
   if (!apiKey) {
     return ({ to, subject, link }) => logger.log(`"${subject}" for ${to}: ${link}`);

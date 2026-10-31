@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool } from "pg";
 
 /**
  * Creates the Postgres pool. When a CA certificate is given (DigitalOcean managed databases),
@@ -11,7 +11,7 @@ export function createPool(databaseUrl: string, caCert?: string): Pool {
   }
 
   const url = new URL(databaseUrl);
-  url.searchParams.delete('sslmode');
+  url.searchParams.delete("sslmode");
 
   return new Pool({ connectionString: url.toString(), ssl: { ca: caCert } });
 }

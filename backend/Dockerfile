@@ -1,28 +1,28 @@
-# Build from the repo root (docker build -f backend/Dockerfile .) so contracts/ is in the context.
+# Build from the repo root (docker build -f backend/Dockerfile .): the backend is part of the pnpm workspace there.
 FROM node:24-slim AS base
 RUN npm install -g pnpm@12.15.0
 WORKDIR /app
+# pnpm reads the shared lockfile against every package's package.json, so they all come in; only the backend's
+# own dependencies (and contracts) get installed.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json backend/
+COPY connector/package.json connector/
+COPY contracts/package.json contracts/
+COPY desktop/package.json desktop/
+COPY frontend/package.json frontend/
+COPY ui/package.json ui/
 
 FROM base AS build
-COPY contracts/package.json contracts/pnpm-lock.yaml contracts/
-RUN cd contracts && pnpm install --frozen-lockfile --ignore-scripts
+# contracts builds itself when installed (its prepare script), so its source goes in first.
 COPY contracts/ contracts/
-RUN cd contracts && pnpm build
-
-COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml backend/
-RUN cd backend && pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter backend...
 COPY backend/ backend/
-RUN cd backend && pnpm build
+RUN pnpm --filter backend build
 
 FROM base AS runtime
 ENV NODE_ENV=production
-
-COPY contracts/package.json contracts/pnpm-lock.yaml contracts/
-RUN cd contracts && pnpm install --frozen-lockfile --prod --ignore-scripts
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter backend...
 COPY --from=build /app/contracts/dist contracts/dist
-
-COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml backend/
-RUN cd backend && pnpm install --frozen-lockfile --prod
 COPY --from=build /app/backend/dist backend/dist
 COPY backend/drizzle backend/drizzle
 

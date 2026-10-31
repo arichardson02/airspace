@@ -53,12 +53,7 @@ function arc(from: keyof typeof airports, to: keyof typeof airports): string {
 // The dot world map behind the hero, with flights drawing themselves between airports.
 export function FlightMap({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden
-      className={className}
-    >
+    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="xMidYMid slice" aria-hidden className={className}>
       <g fill="currentColor" opacity={0.28}>
         {dots.map(([x, y]) => (
           <circle key={`${x}-${y}`} cx={x} cy={y} r={1.6} />

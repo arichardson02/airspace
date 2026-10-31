@@ -1,0 +1,34 @@
+# One .gitignore for every package in the workspace.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+.next/
+frontend/out/
+frontend/build/
+frontend/next-env.d.ts
+# Installers from electron-builder.
+desktop/release/
+
+# Env files hold secrets; the examples document them.
+.env
+.env.*
+!.env.example
+
+# Terraform: providers, state and variables (secrets) stay local.
+infra/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+infra/crash.log
+infra/tfplan
+
+# Logs, coverage and OS files
+*.log
+coverage/
+.DS_Store
+*.pem

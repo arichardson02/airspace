@@ -1,0 +1,18 @@
+# One install and one lockfile for every package. Each package keeps its own package.json; packages depend on
+# each other with "workspace:*".
+packages:
+  - backend
+  - connector
+  - contracts
+  - desktop
+  - frontend
+  - ui
+
+# Which dependencies may run install scripts.
+allowBuilds:
+  electron: true
+  esbuild: true
+  # Squirrel installers only; the desktop app builds an NSIS installer.
+  electron-winstaller: false
+  sharp: false
+  unrs-resolver: false

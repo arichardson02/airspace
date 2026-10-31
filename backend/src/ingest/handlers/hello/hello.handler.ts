@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import type { IngestContext, IngestHandler, MessageOf } from '../../ingest-handler.js';
-import { connectorSessions } from './hello.schema.js';
+import { Injectable } from "@nestjs/common";
+import type { IngestContext, IngestHandler, MessageOf } from "../../ingest-handler.js";
+import { connectorSessions } from "./hello.schema.js";
 
 @Injectable()
-export class HelloIngestHandler implements IngestHandler<'connector.hello'> {
-  readonly type = 'connector.hello';
+export class HelloIngestHandler implements IngestHandler<"connector.hello"> {
+  readonly type = "connector.hello";
   readonly createsSession = true;
 
   async handle(
-    messages: MessageOf<'connector.hello'>[],
+    messages: MessageOf<"connector.hello">[],
     { tx, connectorSessionId, userId, receivedAt }: IngestContext,
   ): Promise<void> {
     const [hello] = messages;

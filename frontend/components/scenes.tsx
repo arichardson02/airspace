@@ -16,7 +16,19 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export const SCENE_MS = 8000;
 
 // Something that appears once a phase is reached.
-function At({ phase, when, children, className, delay = 0 }: { phase: number; when: number; children: ReactNode; className?: string; delay?: number }) {
+function At({
+  phase,
+  when,
+  children,
+  className,
+  delay = 0,
+}: {
+  phase: number;
+  when: number;
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   return (
     <AnimatePresence initial={false}>
       {phase >= when && (
@@ -37,7 +49,11 @@ function At({ phase, when, children, className, delay = 0 }: { phase: number; wh
 function Bar({ to, duration = 1 }: { to: number; duration?: number }) {
   return (
     <div className="h-1 overflow-hidden rounded-full bg-paper/15">
-      <motion.div animate={{ scaleX: to }} transition={{ duration, ease }} className="h-full origin-left rounded-full bg-paper" />
+      <motion.div
+        animate={{ scaleX: to }}
+        transition={{ duration, ease }}
+        className="h-full origin-left rounded-full bg-paper"
+      />
     </div>
   );
 }
@@ -130,7 +146,11 @@ export function InstallScene({ active }: { active: boolean }) {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.3 }}
               >
-                {phase >= 4 ? "Sending position · 4 msg/s" : phase >= 3 ? "Connected to MSFS 2024" : "Waiting for the simulator"}
+                {phase >= 4
+                  ? "Sending position · 4 msg/s"
+                  : phase >= 3
+                    ? "Connected to MSFS 2024"
+                    : "Waiting for the simulator"}
               </motion.span>
             </AnimatePresence>
           </span>
@@ -156,7 +176,10 @@ export function JobScene({ active }: { active: boolean }) {
       <Title aside="12 available">Jobs at KSEA</Title>
       <div className="flex gap-1.5 text-xs">
         {["All", "Passengers", "Cargo"].map((filter, index) => (
-          <span key={filter} className={cn("rounded-full px-2.5 py-1", index === 0 ? "bg-paper text-ink" : "bg-paper/8 text-paper/60")}>
+          <span
+            key={filter}
+            className={cn("rounded-full px-2.5 py-1", index === 0 ? "bg-paper text-ink" : "bg-paper/8 text-paper/60")}
+          >
             {filter}
           </span>
         ))}
@@ -187,7 +210,10 @@ export function JobScene({ active }: { active: boolean }) {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                    className={cn("rounded-full px-2.5 py-1 text-xs font-medium", phase >= 2 ? "bg-paper text-ink" : "border border-paper/40")}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium",
+                      phase >= 2 ? "bg-paper text-ink" : "border border-paper/40",
+                    )}
                   >
                     {phase >= 2 ? "Accepted" : "Accept"}
                   </motion.span>
@@ -232,7 +258,13 @@ export function FlyScene({ active }: { active: boolean }) {
           <span className="flex items-center gap-2">
             <Live />
             <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span key={now.stage} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}>
+              <motion.span
+                key={now.stage}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.3 }}
+              >
                 {now.stage}
               </motion.span>
             </AnimatePresence>
@@ -356,7 +388,9 @@ export function ClubScene({ active }: { active: boolean }) {
       <ul className="flex flex-col gap-2">
         {online.map((pilot) => (
           <li key={pilot.name} className="flex items-center gap-2.5 text-sm">
-            <span className="flex size-6 items-center justify-center rounded-full bg-paper/12 text-[10px] font-semibold">{pilot.name[0]}</span>
+            <span className="flex size-6 items-center justify-center rounded-full bg-paper/12 text-[10px] font-semibold">
+              {pilot.name[0]}
+            </span>
             <span className="font-medium">{pilot.name}</span>
             <span className="truncate text-xs text-paper/50">{pilot.status}</span>
             <Live />
@@ -366,7 +400,9 @@ export function ClubScene({ active }: { active: boolean }) {
 
       <At phase={phase} when={1} className="mt-4">
         <Panel className="flex gap-2.5">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-paper/12 text-[10px] font-semibold">M</span>
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-paper/12 text-[10px] font-semibold">
+            M
+          </span>
           <p className="text-sm leading-snug">
             <span className="font-medium">Mara K.</span>{" "}
             <span className="text-paper/80">Anchorage run Saturday, who&apos;s in?</span>
@@ -384,7 +420,12 @@ export function ClubScene({ active }: { active: boolean }) {
             <span className="text-paper/60">
               <Counter value={phase >= 3 ? 9 : 8} /> going
             </span>
-            <span className={cn("rounded-full px-2.5 py-1 font-medium transition-colors", phase >= 3 ? "bg-paper text-ink" : "border border-paper/40")}>
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 font-medium transition-colors",
+                phase >= 3 ? "bg-paper text-ink" : "border border-paper/40",
+              )}
+            >
               {phase >= 3 ? "Joined" : "Join"}
             </span>
           </div>

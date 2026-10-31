@@ -15,9 +15,15 @@ const rise = (delay: number) => ({
 
 // Mirrors the connector's sign-in: it opens /device with its code and the pilot approves it.
 const connectSteps = [
-  { title: "Download the connector", body: "A small Windows app for Microsoft Flight Simulator 2020. The download opens soon." },
+  {
+    title: "Download the connector",
+    body: "A small Windows app for Microsoft Flight Simulator 2020. The download opens soon.",
+  },
   { title: "Start it with the sim open", body: "It finds the simulator by itself and waits in the background." },
-  { title: "Approve its code", body: "It opens airspace.club/device with a code. Approve it once and it stays signed in." },
+  {
+    title: "Approve its code",
+    body: "It opens airspace.club/device with a code. Approve it once and it stays signed in.",
+  },
 ];
 
 // Each fills in from the connector's data; until there is some, they say what will appear.
@@ -27,12 +33,18 @@ const upcoming = [
     title: "Jobs",
     body: "Passenger and cargo jobs from the airport you're parked at, once the connector sees your aircraft.",
   },
-  { icon: BookOpen, title: "Logbook", body: "Every flight is recorded with its route, time and landing. You never type a line." },
+  {
+    icon: BookOpen,
+    title: "Logbook",
+    body: "Every flight is recorded with its route, time and landing. You never type a line.",
+  },
   { icon: Users, title: "Co-op", body: "Fly a shared cockpit with a friend: pilot and co-pilot in the same aircraft." },
 ];
 
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border border-paper/10 bg-paper/[0.03] p-6 sm:p-7", className)}>{children}</div>;
+  return (
+    <div className={cn("rounded-2xl border border-paper/10 bg-paper/[0.03] p-6 sm:p-7", className)}>{children}</div>
+  );
 }
 
 export function Dashboard({ name }: { name: string }) {

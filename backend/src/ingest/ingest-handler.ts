@@ -1,7 +1,7 @@
-import type { ConnectorMessage, ConnectorMessageType } from '@fs-career/contracts';
-import type { Transaction } from '../database/database.module.js';
+import type { ConnectorMessage, ConnectorMessageType } from "@fs-career/contracts";
+import type { Transaction } from "../database/database.module.js";
 
-export const INGEST_HANDLERS = Symbol('INGEST_HANDLERS');
+export const INGEST_HANDLERS = Symbol("INGEST_HANDLERS");
 
 export type MessageOf<T extends ConnectorMessageType> = Extract<ConnectorMessage, { type: T }>;
 

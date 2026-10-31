@@ -1,19 +1,14 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
+import { and, eq } from "drizzle-orm";
 import {
   connectorMessageSchema,
   type ConnectorMessage,
   type ConnectorMessageType,
   type IngestBatch,
-} from '@fs-career/contracts';
-import { DRIZZLE, type Database } from '../database/database.module.js';
-import { connectorSessions } from './handlers/hello/hello.schema.js';
-import {
-  INGEST_HANDLERS,
-  type AnyIngestHandler,
-  type IngestContext,
-  type IngestHandler,
-} from './ingest-handler.js';
+} from "@fs-career/contracts";
+import { DRIZZLE, type Database } from "../database/database.module.js";
+import { connectorSessions } from "./handlers/hello/hello.schema.js";
+import { INGEST_HANDLERS, type AnyIngestHandler, type IngestContext, type IngestHandler } from "./ingest-handler.js";
 
 @Injectable()
 export class IngestService implements OnModuleInit {

@@ -148,7 +148,13 @@ function GroupFlight() {
           transition={{ duration: 1.2, ease }}
           className="absolute inset-0"
         >
-          <Image src={flight.image} alt={`${flight.city} in Microsoft Flight Simulator`} fill sizes="(min-width: 1024px) 800px, 100vw" className="object-cover" />
+          <Image
+            src={flight.image}
+            alt={`${flight.city} in Microsoft Flight Simulator`}
+            fill
+            sizes="(min-width: 1024px) 800px, 100vw"
+            className="object-cover"
+          />
         </motion.div>
       </AnimatePresence>
       <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-ink/10" />
@@ -188,7 +194,11 @@ function GroupFlight() {
           items={groupFlights.map((item) => (
             <div key={item.route} className="flex items-center">
               {item.going.slice(0, 5).map((name, index) => (
-                <Avatar key={name} name={name} className={cn("border-2 border-ink bg-paper text-ink", index > 0 && "-ml-2")} />
+                <Avatar
+                  key={name}
+                  name={name}
+                  className={cn("border-2 border-ink bg-paper text-ink", index > 0 && "-ml-2")}
+                />
               ))}
               <span className="ml-3 text-sm font-medium">{item.going.length} going</span>
             </div>
@@ -236,12 +246,7 @@ function ClubChat() {
     <>
       <CardHeader title="Club Chat" aside="5 online" />
       <div className="mt-4 overflow-hidden" style={{ height: ROWS * ROW_PX }}>
-        <motion.ul
-          key={tick}
-          initial={{ y: 0 }}
-          animate={{ y: -ROW_PX }}
-          transition={{ duration: 0.6, ease }}
-        >
+        <motion.ul key={tick} initial={{ y: 0 }} animate={{ y: -ROW_PX }} transition={{ duration: 0.6, ease }}>
           {lines.map((line) => (
             <li key={line.id} className="flex h-11 items-center gap-3">
               <Avatar name={line.name} className="size-6 text-[10px]" />
@@ -269,7 +274,9 @@ export function Community() {
             <Words text="Your Club" />
           </h2>
           <Slide from="right" range={[0.3, 0.8]}>
-            <p className="max-w-xs text-lg text-muted">Join a club, follow every flight on the live map, and plan group flights.</p>
+            <p className="max-w-xs text-lg text-muted">
+              Join a club, follow every flight on the live map, and plan group flights.
+            </p>
           </Slide>
         </ScrollGroup>
 

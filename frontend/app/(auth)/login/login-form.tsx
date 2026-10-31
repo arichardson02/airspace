@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, safeRedirect } from "@/components/auth/field";
+import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
 import { authClient } from "@/lib/auth-client";
 
 export function LoginForm() {
@@ -27,8 +27,8 @@ export function LoginForm() {
     setUnverified(false);
 
     const { error } = await authClient.signIn.email({
-      email: String(form.get("email")),
-      password: String(form.get("password")),
+      email: formText(form, "email"),
+      password: formText(form, "password"),
     });
 
     if (!error) {
@@ -56,7 +56,10 @@ export function LoginForm() {
       footer={
         <>
           New to Airspace?{" "}
-          <Link href={`/signup?redirect=${encodeURIComponent(redirect)}`} className="font-medium text-paper hover:underline">
+          <Link
+            href={`/signup?redirect=${encodeURIComponent(redirect)}`}
+            className="font-medium text-paper hover:underline"
+          >
             Create an account
           </Link>
         </>
@@ -93,7 +96,11 @@ export function LoginForm() {
             ) : (
               <>
                 Confirm your email first. We sent a link when you signed up.{" "}
-                <button type="button" onClick={resend} className="font-medium text-paper underline-offset-2 hover:underline">
+                <button
+                  type="button"
+                  onClick={resend}
+                  className="font-medium text-paper underline-offset-2 hover:underline"
+                >
                   Send it again
                 </button>
               </>

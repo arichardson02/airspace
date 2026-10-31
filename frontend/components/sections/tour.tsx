@@ -21,11 +21,7 @@ export function Tour() {
   const current = picked ?? tick % steps.length;
 
   return (
-    <section
-      id="tour"
-      aria-labelledby="tour-title"
-      className="flex min-h-screen items-center bg-ink text-paper"
-    >
+    <section id="tour" aria-labelledby="tour-title" className="flex min-h-screen items-center bg-ink text-paper">
       <ScrollGroup className="mx-auto w-full max-w-7xl px-5 py-24 sm:py-32" to="start 30%">
         <h2 id="tour-title" className="display text-4xl sm:text-5xl md:text-6xl">
           <Words text="Tour" range={[0, 0.4]} />
@@ -38,12 +34,26 @@ export function Tour() {
               return (
                 <Slide key={step.title} from="left" range={[0.15 + index * 0.08, 0.55 + index * 0.08]}>
                   <li className="border-t border-paper/10 last:border-b">
-                    <button type="button" onClick={() => setPicked(index)} className="relative block w-full py-5 text-left">
+                    <button
+                      type="button"
+                      onClick={() => setPicked(index)}
+                      className="relative block w-full py-5 text-left"
+                    >
                       <div className="flex items-baseline gap-5">
-                        <span className={cn("text-sm font-semibold tabular-nums transition-colors", on ? "text-paper" : "text-paper/35")}>
+                        <span
+                          className={cn(
+                            "text-sm font-semibold tabular-nums transition-colors",
+                            on ? "text-paper" : "text-paper/35",
+                          )}
+                        >
                           0{index + 1}
                         </span>
-                        <h3 className={cn("display text-2xl transition-colors sm:text-3xl", on ? "text-paper" : "text-paper/45")}>
+                        <h3
+                          className={cn(
+                            "display text-2xl transition-colors sm:text-3xl",
+                            on ? "text-paper" : "text-paper/45",
+                          )}
+                        >
                           {step.title}
                         </h3>
                       </div>

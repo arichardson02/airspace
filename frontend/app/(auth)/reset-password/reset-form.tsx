@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { ActionButton, Button } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage } from "@/components/auth/field";
+import { Field, FormMessage, formText } from "@/components/auth/field";
 import { authClient } from "@/lib/auth-client";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -23,7 +23,7 @@ export function ResetForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const newPassword = String(form.get("password"));
+    const newPassword = formText(form, "password");
     if (newPassword !== form.get("confirm")) {
       setError("The passwords don't match.");
       return;

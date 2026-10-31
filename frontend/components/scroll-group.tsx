@@ -101,12 +101,7 @@ export function Words({ text, className, from = "top", range = [0, 0.7] }: Words
   return (
     <span className={cn("inline-flex flex-wrap gap-x-[0.25em]", className)}>
       {words.map((word, index) => (
-        <Word
-          key={index}
-          text={word}
-          from={from}
-          range={[range[0] + index * span, range[0] + (index + 2.5) * span]}
-        />
+        <Word key={index} text={word} from={from} range={[range[0] + index * span, range[0] + (index + 2.5) * span]} />
       ))}
     </span>
   );

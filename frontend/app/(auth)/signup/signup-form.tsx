@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, safeRedirect } from "@/components/auth/field";
+import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
 import { authClient } from "@/lib/auth-client";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -21,15 +21,15 @@ export function SignupForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email"));
+    const email = formText(form, "email");
     setPending(true);
     setError(undefined);
 
     // The verification link signs the pilot in and lands them on `redirect`.
     const { error } = await authClient.signUp.email({
-      name: String(form.get("name")).trim(),
+      name: formText(form, "name").trim(),
       email,
-      password: String(form.get("password")),
+      password: formText(form, "password"),
       callbackURL: redirect,
     });
 
@@ -46,8 +46,8 @@ export function SignupForm() {
         title="Check your inbox"
         subtitle={
           <>
-            We sent a link to <span className="font-medium text-paper">{sentTo}</span>. Open it to confirm your email and
-            you&apos;re in.
+            We sent a link to <span className="font-medium text-paper">{sentTo}</span>. Open it to confirm your email
+            and you&apos;re in.
           </>
         }
         footer={
@@ -71,14 +71,24 @@ export function SignupForm() {
       footer={
         <>
           Already flying with us?{" "}
-          <Link href={`/login?redirect=${encodeURIComponent(redirect)}`} className="font-medium text-paper hover:underline">
+          <Link
+            href={`/login?redirect=${encodeURIComponent(redirect)}`}
+            className="font-medium text-paper hover:underline"
+          >
             Sign in
           </Link>
         </>
       }
     >
       <form onSubmit={submit} className="flex flex-col gap-5">
-        <Field label="Pilot name" name="name" autoComplete="nickname" required maxLength={40} placeholder="What your crew calls you" />
+        <Field
+          label="Pilot name"
+          name="name"
+          autoComplete="nickname"
+          required
+          maxLength={40}
+          placeholder="What your crew calls you"
+        />
         <Field label="Email" name="email" type="email" autoComplete="email" required />
         <Field
           label="Password"

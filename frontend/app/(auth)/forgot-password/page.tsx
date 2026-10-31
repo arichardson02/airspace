@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage } from "@/components/auth/field";
+import { Field, FormMessage, formText } from "@/components/auth/field";
 import { authClient } from "@/lib/auth-client";
 
 export default function ForgotPasswordPage() {
@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
 
     // The emailed link lands on /reset-password?token=…
     const { error } = await authClient.requestPasswordReset({
-      email: String(form.get("email")),
+      email: formText(form, "email"),
       redirectTo: "/reset-password",
     });
 

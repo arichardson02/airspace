@@ -1,8 +1,8 @@
-import { Controller } from '@nestjs/common';
-import { Implement, implement } from '@orpc/nest';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
-import { contract } from '@fs-career/contracts';
-import { IngestService } from './ingest.service.js';
+import { Controller } from "@nestjs/common";
+import { Implement, implement } from "@orpc/nest";
+import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
+import { contract } from "@fs-career/contracts";
+import { IngestService } from "./ingest.service.js";
 
 @Controller()
 export class IngestController {
