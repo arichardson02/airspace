@@ -1,0 +1,37 @@
+# Unused code, duplication and complexity across the workspace. Advisory for now: findings show as annotations and
+# in the run summary but don't fail the job, because main already has some.
+name: Fallow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fallow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Fallow resolves workspace packages and CSS imports through node_modules; without them it reports false
+      # unresolved imports and unused dependencies.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Fallow - Codebase Intelligence
+        uses: fallow-rs/fallow@v3.38.1
+        with:
+          # The action's ref doesn't pin the CLI; without this it installs the latest.
+          version: 3.38.1
+          fail-on-issues: false
