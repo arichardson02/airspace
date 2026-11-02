@@ -5,10 +5,13 @@
   "scripts": {
     "lint": "oxlint --type-aware",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check": "pnpm install --frozen-lockfile && pnpm format:check && pnpm lint && pnpm --filter connector --filter desktop --filter ui typecheck && pnpm --filter backend --filter frontend build && fallow audit",
+    "prepare": "node -e \"try{require('node:child_process').execFileSync('git',['config','core.hooksPath','.githooks'],{stdio:'ignore'})}catch{}\""
   },
   "packageManager": "pnpm@12.15.0",
   "devDependencies": {
+    "fallow": "3.38.1",
     "oxlint": "^1.90.0",
     "oxlint-tsgolint": "^7.0.2005",
     "prettier": "^3.9.10"

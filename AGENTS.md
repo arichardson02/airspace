@@ -63,13 +63,19 @@ variables are in its area guide.
 | `pnpm lint`             | oxlint over every package, with type-aware rules (`.oxlintrc.json`)      |
 | `pnpm format`           | Prettier over every package (`.prettierrc.json`)                         |
 | `pnpm format:check`     | Fails if anything isn't formatted                                        |
-| `npx fallow`            | Unused code and dependencies, duplication, complexity (`.fallowrc.json`) |
+| `pnpm fallow`           | Unused code and dependencies, duplication, complexity (`.fallowrc.json`) |
+| `pnpm check`            | Everything the pre-push hook runs (below)                                |
 | `pnpm --filter <pkg> …` | Any package's script, e.g. `pnpm --filter connector typecheck`           |
 
 There is one lint config, one format config and one `.gitignore` for the whole repo; packages don't have their own.
-GitHub Actions runs Fallow on every push to `main` and every pull request (`.github/workflows/fallow.yml`). It's
-advisory for now: findings show in the run but don't fail it. Files Fallow can't find as entry points (bundled or
-run by hand) are listed under `entry` in `.fallowrc.json`.
+Files Fallow can't find as entry points (bundled or run by hand) are listed under `entry` in `.fallowrc.json`.
+
+### Pre-push hook
+
+`pnpm install` points git at `.githooks/`, whose `pre-push` runs `pnpm check`: a frozen-lockfile install,
+`format:check`, `lint`, the connector, desktop and ui typechecks, the backend and frontend builds, and
+`fallow audit` (which fails only on findings the push adds). A failure cancels the push. It checks the working
+tree, so commit or stash unrelated changes first. Agents never skip it with `--no-verify`; fix what fails, or ask.
 
 ## Working conventions
 

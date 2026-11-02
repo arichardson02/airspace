@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs the repo-wide checks before anything is pushed; a failure cancels the push. Installed by `pnpm install`
+# (the root `prepare` script points core.hooksPath here). The checks see the working tree, so commit or stash
+# unrelated changes first.
+exec pnpm check
