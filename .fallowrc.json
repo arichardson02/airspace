@@ -1,3 +1,4 @@
 {
-  "entry": ["desktop/electron/preload.ts", "frontend/scripts/*.mjs"]
+  "entry": ["desktop/electron/preload.ts", "frontend/scripts/*.mjs"],
+  "ignoreDependencies": ["@tailwindcss/turbopack"]
 }

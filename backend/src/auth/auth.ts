@@ -6,7 +6,7 @@ import { authSchema } from "./auth.schema.js";
 import type { SendEmail } from "./email.js";
 
 /** The only client allowed to sign in with a device code. */
-export const CONNECTOR_CLIENT_ID = "airspace-connector";
+const CONNECTOR_CLIENT_ID = "airspace-connector";
 
 const DAY_SECONDS = 24 * 60 * 60;
 

@@ -31,7 +31,7 @@ export interface SignInOptions {
 }
 
 /** The code was denied or expired; signing in again gets a new one. */
-export class DeviceCodeError extends Error {}
+class DeviceCodeError extends Error {}
 
 export interface SignedIn {
   /** A session token, sent as `Authorization: Bearer` to the backend. */

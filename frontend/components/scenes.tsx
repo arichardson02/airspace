@@ -84,7 +84,7 @@ function Title({ children, aside }: { children: ReactNode; aside?: ReactNode }) 
 // connector does: it signs in, waits for SimConnect, says hello, then streams position.
 const installPhases = [1600, 1800, 1500, 1300] as const;
 
-export function InstallScene({ active }: { active: boolean }) {
+function InstallScene({ active }: { active: boolean }) {
   const phase = usePhases(active, installPhases);
 
   return (
@@ -168,7 +168,7 @@ const jobs = [
   { route: "KSEA → KGEG", detail: "110 passengers · A320neo", pay: "$7,800", xp: "310 XP" },
 ];
 
-export function JobScene({ active }: { active: boolean }) {
+function JobScene({ active }: { active: boolean }) {
   const phase = usePhases(active, jobPhases);
 
   return (
@@ -247,7 +247,7 @@ const flight = [
   { stage: "Cruise", progress: 0.66, altitude: 24000, speed: 414, vs: 0 },
 ];
 
-export function FlyScene({ active }: { active: boolean }) {
+function FlyScene({ active }: { active: boolean }) {
   const phase = usePhases(active, flyPhases);
   const now = flight[Math.min(phase, flight.length - 1)];
 
@@ -316,7 +316,7 @@ export function FlyScene({ active }: { active: boolean }) {
 // 4. The debrief: landing graded, pay in, XP up, flight added to the logbook.
 const rankPhases = [1200, 1200, 1300] as const;
 
-export function RankScene({ active }: { active: boolean }) {
+function RankScene({ active }: { active: boolean }) {
   const phase = usePhases(active, rankPhases);
 
   return (
@@ -379,7 +379,7 @@ const online = [
   { name: "Priya", status: "Parked at KSFO" },
 ];
 
-export function ClubScene({ active }: { active: boolean }) {
+function ClubScene({ active }: { active: boolean }) {
   const phase = usePhases(active, clubPhases);
 
   return (
