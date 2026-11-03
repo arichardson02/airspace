@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { ConnectorCommand, ConnectorStatus } from "@fs-career/contracts";
+import type { ConnectorStatus, WindowCommand } from "@fs-career/contracts";
 
 /** What the window can do, exposed as `window.airspace`. The page never gets Node or Electron itself. */
 const airspace = {
@@ -13,7 +13,7 @@ const airspace = {
       ipcRenderer.off("connector:status", handler);
     };
   },
-  send: (command: ConnectorCommand): void => {
+  send: (command: WindowCommand): void => {
     ipcRenderer.send("connector:command", command);
   },
   minimize: (): void => {

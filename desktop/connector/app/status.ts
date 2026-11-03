@@ -8,13 +8,14 @@ export interface StatusStore {
   subscribe(listener: (status: ConnectorStatus) => void): () => void;
 }
 
-/** Everything the desktop window shows, owned by the connector. */
+/** Everything the desktop window shows, owned by the connector except `update`, which the main process writes. */
 export function createStatus(version: string): StatusStore {
   let status: ConnectorStatus = {
     version,
     account: { state: "checking" },
     sim: { state: "waiting" },
     coop: { state: "off" },
+    update: { state: "none" },
   };
   const listeners = new Set<(status: ConnectorStatus) => void>();
 

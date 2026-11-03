@@ -14,6 +14,11 @@ DigitalOcean App Platform, managed by Terraform in `infra/` with state in HCP Te
   `migrate` pre-deploy job, a managed Postgres cluster (`fs-career-db`, database `fs_career`) firewalled to the
   app, and a DigitalOcean project grouping them.
 - **Code deploys on every push to `main`.** Terraform is only for infrastructure changes.
+- **Desktop releases** don't go through DigitalOcean: GitHub Actions publishes them as GitHub releases (see the
+  `desktop` guide), and the website's `/download` redirects to the latest installer.
+- **Renaming the GitHub repo** silently stops push-to-deploy: App Platform matches pushes by repo name. Update
+  `github_repo` in `terraform.tfvars` and apply, and update the owner and repo in `desktop/package.json`'s
+  `build.publish` and `frontend/config/site.ts`.
 - Running Terraform: export `DIGITALOCEAN_TOKEN`, `TF_CLOUD_ORGANIZATION=fs-careers` and
   `TF_WORKSPACE=fs-career`, then `terraform init`, `plan` and `apply` in `infra/`. Settings and secrets
   (`github_repo`, `better_auth_secret`, `resend_api_key`, `database_trusted_ips`) go in the uncommitted

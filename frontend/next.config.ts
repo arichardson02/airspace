@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { siteConfig } from "./config/site";
 
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
 
@@ -16,6 +17,10 @@ const nextConfig: NextConfig = {
   // does the same, so auth cookies stay on the site's own origin.
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${backendUrl}/api/:path*` }];
+  },
+  // A short link to the latest desktop installer. Temporary, so browsers don't cache where it points.
+  async redirects() {
+    return [{ source: "/download", destination: siteConfig.desktopDownload, permanent: false }];
   },
   turbopack: {
     rules: {

@@ -1,13 +1,16 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "node:path";
-import { connectorCommandSchema } from "@fs-career/contracts";
+import { windowCommandSchema } from "@fs-career/contracts";
 import { createConnector } from "../connector/app/create.js";
 import { logToFile } from "./log.js";
+import { installUpdate, startUpdater } from "./updater.js";
 
-// One copy at a time: a second connector would fight the first over the simulator and the co-op group.
-if (!app.requestSingleInstanceLock()) app.quit();
+// One copy at a time: a second connector would fight the first over the simulator and the co-op group, and a
+// second updater over the download. A second copy only hands focus to the first (see second-instance) and quits.
+const primary = app.requestSingleInstanceLock();
+if (!primary) app.quit();
 
-if (app.isPackaged) logToFile(join(app.getPath("logs"), "main.log"));
+if (primary && app.isPackaged) logToFile(join(app.getPath("logs"), "main.log"));
 
 const { connector, status } = createConnector({
   openBrowser: (url) => void shell.openExternal(url),
@@ -51,8 +54,10 @@ function createWindow(): void {
 ipcMain.handle("connector:status", () => status.get());
 // The page is untrusted input: the schema checks whatever it sends before the connector sees it.
 ipcMain.on("connector:command", (_event, value) => {
-  const parsed = connectorCommandSchema.safeParse(value);
-  if (parsed.success) connector.handle(parsed.data);
+  const parsed = windowCommandSchema.safeParse(value);
+  if (!parsed.success) return;
+  if (parsed.data.type === "restart-to-update") restartToUpdate();
+  else connector.handle(parsed.data);
 });
 ipcMain.on("window:minimize", () => window?.minimize());
 ipcMain.on("window:close", () => window?.close());
@@ -69,21 +74,43 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
+// Quitting and restarting to update both stop the connector first; whichever comes second waits on the same stop.
+let stopping: Promise<void> | undefined;
 let stopped = false;
+function stopConnector(): Promise<void> {
+  stopping ??= connector.stop().finally(() => {
+    stopped = true;
+  });
+  return stopping;
+}
+
 app.on("will-quit", (event) => {
   if (stopped) return;
   // Let the connector leave its group and send what it has queued before exiting.
   event.preventDefault();
-  void connector.stop().finally(() => {
-    stopped = true;
+  void stopConnector().finally(() => {
     app.quit();
   });
 });
 
+// The installer closes the app within a couple of seconds of starting, so the connector stops before it starts. A
+// stop that hangs (a slow final upload) still gives way to the install after `installAfterMs`.
+const installAfterMs = 10_000;
+function restartToUpdate(): void {
+  const update = status.get().update;
+  if (update.state !== "ready") return;
+  // `installing` hides the restart buttons, so the install starts once.
+  status.update({ update: { state: "installing", version: update.version } });
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, installAfterMs));
+  void Promise.race([stopConnector(), timeout]).finally(installUpdate);
+}
+
 async function start(): Promise<void> {
+  if (!primary) return;
   await app.whenReady();
   createWindow();
   connector.start();
+  startUpdater(status);
 }
 
 void start();

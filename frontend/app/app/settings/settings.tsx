@@ -3,8 +3,9 @@
 import type { ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { ActionButton } from "@fs-career/ui/button";
+import { ActionButton, buttonClass } from "@fs-career/ui/button";
 import { AccountHeader, Page, SettingsGroup, SettingsRow } from "@fs-career/ui/shell";
+import { siteConfig } from "@/config/site";
 import { authClient } from "@/lib/auth-client";
 
 // Mirrors the connector's sign-in: it opens /device with its code and the pilot approves it.
@@ -45,7 +46,13 @@ export function SettingsPage({ name, email }: { name: string; email: string }): 
       <SettingsGroup title="Connect Your Sim">
         {connectSteps.map((step, index) => (
           <SettingsRow key={step.title} label={step.title} detail={step.body}>
-            <span className="text-paper/35 tabular-nums">0{index + 1}</span>
+            {index === 0 ? (
+              <a href={siteConfig.desktopDownload} className={buttonClass("paper", "sm")}>
+                Download
+              </a>
+            ) : (
+              <span className="text-paper/35 tabular-nums">0{index + 1}</span>
+            )}
           </SettingsRow>
         ))}
       </SettingsGroup>

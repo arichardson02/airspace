@@ -29,7 +29,7 @@ export function App(): ReactElement {
   return (
     <div className="relative flex h-full flex-col">
       <Intro />
-      <TitleBar />
+      <TitleBar update={status?.update} />
       {/* Signing in or out swaps the screens as a view transition: one fades away as the other rises in. */}
       {ready &&
         status !== undefined &&
@@ -104,7 +104,7 @@ function Shell({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }): Re
                 />
               )}
               {view === "coop" && <Coop pilot={pilot} status={status} />}
-              {view === "settings" && <Settings pilot={pilot} version={status.version} />}
+              {view === "settings" && <Settings pilot={pilot} version={status.version} update={status.update} />}
             </motion.div>
           </AnimatePresence>
         </main>

@@ -1,5 +1,6 @@
-// The desktop app's window and the connector running in its main process. The connector owns all state and
-// sends the window a full snapshot whenever anything changes; the window sends commands back.
+// The desktop app's window and the connector running in its main process. The connector owns the state (the
+// main process adds the app's own update) and sends the window a full snapshot whenever anything changes; the
+// window sends commands back.
 
 import { z } from "zod";
 import type { GroupPeer } from "./group.js";
@@ -35,16 +36,26 @@ export type CoopStatus =
       dualInputAt?: number;
     };
 
+export type UpdateStatus =
+  // Up to date, still checking, a development build, or the last check failed (it's logged and retried).
+  | { state: "none" }
+  | { state: "downloading"; version: string; percent: number }
+  // Downloaded: installs on `restart-to-update`, or by itself when the app quits.
+  | { state: "ready"; version: string }
+  // Restarting into it: the connector is stopping and the installer is about to close the app.
+  | { state: "installing"; version: string };
+
 export interface ConnectorStatus {
   version: string;
   account: AccountStatus;
   sim: SimStatus;
   coop: CoopStatus;
+  /** The app's own update, written by the main process rather than the connector. */
+  update: UpdateStatus;
 }
 
-// The window is untrusted input, so the main process parses every command with this before the connector sees
-// it. Unknown fields are stripped.
-export const connectorCommandSchema = z.discriminatedUnion("type", [
+// What the connector acts on. Unknown fields are stripped.
+const connectorCommandSchema = z.discriminatedUnion("type", [
   // Opens the sign-in page for the current code in the browser.
   z.object({ type: z.literal("open-sign-in") }),
   // Opens the pilot's dashboard on the website in the browser.
@@ -56,3 +67,12 @@ export const connectorCommandSchema = z.discriminatedUnion("type", [
 ]);
 
 export type ConnectorCommand = z.infer<typeof connectorCommandSchema>;
+
+// Everything the window can send. The window is untrusted input, so the main process parses every command with
+// this; it handles `restart-to-update` itself and passes the rest to the connector.
+export const windowCommandSchema = z.discriminatedUnion("type", [
+  ...connectorCommandSchema.options,
+  z.object({ type: z.literal("restart-to-update") }),
+]);
+
+export type WindowCommand = z.infer<typeof windowCommandSchema>;

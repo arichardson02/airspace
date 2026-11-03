@@ -51,4 +51,6 @@ Schema changes go through drizzle-kit migrations; see the [database guide](.clau
 Visual changes follow the [design system](.claude/skills/design-system/SKILL.md).
 
 Commits use conventional messages scoped to the package: `feat(desktop): …`, `fix(backend): …`. Pushing to
-`main` deploys the website and API ([infra guide](.claude/skills/infra/SKILL.md)).
+`main` deploys the website and API ([infra guide](.claude/skills/infra/SKILL.md)), and a push that changes the
+desktop app (or `contracts`, `ui`, the lockfile or the workspace config) publishes a new desktop release that installed apps update to
+([desktop guide](.claude/skills/desktop/SKILL.md)).

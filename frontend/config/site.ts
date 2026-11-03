@@ -5,6 +5,8 @@ export const siteConfig = {
   title: "Airspace",
   description: "Jobs, a logbook and a club for Microsoft Flight Simulator.",
   discord: "https://discord.gg/airspace",
+  // The desktop installer from the latest release (.github/workflows/desktop-release.yml); /download redirects here.
+  desktopDownload: "https://github.com/arichardson02/airspace/releases/latest/download/Airspace-Setup.exe",
 };
 
 // The page's sections in order. The navbar highlights the one showing the most.

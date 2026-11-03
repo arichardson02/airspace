@@ -1,11 +1,11 @@
 import { startTransition, useEffect, useState } from "react";
-import type { ConnectorCommand, ConnectorStatus } from "@fs-career/contracts";
+import type { ConnectorStatus, WindowCommand } from "@fs-career/contracts";
 
 /** What electron/preload.ts exposes to the page. */
 interface AirspaceBridge {
   status(): Promise<ConnectorStatus>;
   onStatus(listener: (status: ConnectorStatus) => void): () => void;
-  send(command: ConnectorCommand): void;
+  send(command: WindowCommand): void;
   minimize(): void;
   close(): void;
 }
@@ -41,7 +41,7 @@ export function useConnector(): ConnectorStatus | undefined {
   return status;
 }
 
-export const send = (command: ConnectorCommand): void => {
+export const send = (command: WindowCommand): void => {
   bridge().send(command);
 };
 

@@ -22,8 +22,9 @@ It has no Electron imports of its own.
   be registered twice; joining a group only adds a session on top.
 - MSFS 2020 only for now (SimConnect protocol KittyHawk). Everyone in a group flies the same aircraft.
 - Window ↔ connector types are in `contracts/src/desktop.ts`: the connector sends a full `ConnectorStatus` on
-  every change, the window sends `ConnectorCommand`s, which the main process parses with
-  `connectorCommandSchema`. New features add to the status and commands.
+  every change, the window sends commands, which the main process parses with `windowCommandSchema` and passes on
+  as `ConnectorCommand`s. The status's `update` belongs to the main process's updater, not the connector. New
+  features add to the status and commands.
 - Fallow keeps it a separate zone: `desktop/electron` may import it, the window (`desktop/src`) may not.
 
 ## Environment
