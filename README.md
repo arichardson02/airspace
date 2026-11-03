@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h3 align="center">A career for your MSFS pilot.</h3>
+<h3 align="center">A new dynamic for your MSFS pilot.</h3>
 
 <p align="center">
   <a href="https://airspace.club"><b>airspace.club</b></a> ·
