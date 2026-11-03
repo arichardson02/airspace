@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Home as HomeIcon, Settings as SettingsIcon, Users, type LucideIcon } from "lucide-react";
 import type { ConnectorStatus, Pilot } from "@fs-career/contracts";
@@ -20,7 +20,7 @@ const nav: { view: View; label: string; icon: LucideIcon }[] = [
   { view: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
-export function App() {
+export function App(): ReactElement {
   const status = useConnector();
 
   return (
@@ -35,7 +35,7 @@ export function App() {
   );
 }
 
-function Shell({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }) {
+function Shell({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }): ReactElement {
   const [view, setView] = useState<View>("home");
 
   return (
@@ -46,7 +46,9 @@ function Shell({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }) {
             <li key={item.view}>
               <button
                 type="button"
-                onClick={() => setView(item.view)}
+                onClick={() => {
+                  setView(item.view);
+                }}
                 aria-current={view === item.view ? "page" : undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
@@ -79,7 +81,15 @@ function Shell({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease }}
           >
-            {view === "home" && <Home pilot={pilot} status={status} onOpenCoop={() => setView("coop")} />}
+            {view === "home" && (
+              <Home
+                pilot={pilot}
+                status={status}
+                onOpenCoop={() => {
+                  setView("coop");
+                }}
+              />
+            )}
             {view === "coop" && <Coop pilot={pilot} status={status} />}
             {view === "settings" && <Settings pilot={pilot} version={status.version} />}
           </motion.div>

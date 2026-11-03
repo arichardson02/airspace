@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const NAV_HEIGHT = 56;
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export function Navbar() {
+export function Navbar(): ReactElement {
   const ids = useMemo(() => sections.map((section) => section.id), []);
   // The bar is the opposite of the section under it, so it always stands out: paper over
   // ink, ink over paper. The highlighted link follows the section showing the most.
@@ -75,7 +75,9 @@ export function Navbar() {
 
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            setOpen((value) => !value);
+          }}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
           className="justify-self-end p-2 md:hidden"
@@ -98,7 +100,9 @@ export function Navbar() {
                 <Link
                   key={section.id}
                   href={`#${section.id}`}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                  }}
                   className={cn("py-2.5 text-base font-medium", section.id !== dominant && "opacity-55")}
                 >
                   {section.label}

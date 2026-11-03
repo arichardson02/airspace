@@ -1,8 +1,9 @@
 import type { IncomingMessage } from "node:http";
+import { Inject } from "@nestjs/common";
 import { type OnGatewayConnection, type OnGatewayDisconnect, WebSocketGateway } from "@nestjs/websockets";
 import { AuthService } from "@thallesp/nestjs-better-auth";
 import { fromNodeHeaders } from "better-auth/node";
-import type { ClientSignalingMessage, GroupPeer, ServerSignalingMessage } from "@fs-career/contracts";
+import type { ClientSignalingMessage, GroupPeer, ServerSignalingMessage, Signal } from "@fs-career/contracts";
 import type { Auth } from "../auth/auth.js";
 
 interface Socket {
@@ -29,37 +30,39 @@ export class GroupGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly groups = new Map<string, Map<string, Member>>();
   private readonly members = new Map<Socket, Member>();
 
-  constructor(private readonly authService: AuthService<Auth>) {}
+  // Nest injects by the runtime class; naming it here keeps the import a value import, not type-only.
+  constructor(@Inject(AuthService) private readonly authService: AuthService<Auth>) {}
 
-  handleConnection(socket: Socket, request: IncomingMessage) {
-    const peer = this.authService.api
+  handleConnection(socket: Socket, request: IncomingMessage): void {
+    const pendingPeer = this.authService.api
       .getSession({ headers: fromNodeHeaders(request.headers) })
       .then((session): GroupPeer | undefined =>
         session ? { pilotId: session.user.id, name: session.user.name } : undefined,
       )
       .catch(() => undefined);
 
-    void peer.then((peer) => {
-      if (!peer) socket.close(UNAUTHORIZED, "Sign in required");
-    });
+    void closeIfSignedOut(socket, pendingPeer);
 
     // Listen right away so no message is missed; each one waits for the session check, and they
     // stay in order because they all wait on the same promise.
     socket.on("message", (data) => {
-      void peer.then((peer) => {
-        if (!peer) return;
-        try {
-          this.handleMessage(socket, peer, JSON.parse(data.toString()) as ClientSignalingMessage);
-        } catch {
-          socket.close(1003, "Invalid message");
-        }
-      });
+      void this.receive(socket, pendingPeer, data);
     });
   }
 
-  handleDisconnect(socket: Socket) {
+  handleDisconnect(socket: Socket): void {
     const member = this.members.get(socket);
     if (member) this.leave(member);
+  }
+
+  private async receive(socket: Socket, pendingPeer: Promise<GroupPeer | undefined>, data: Buffer): Promise<void> {
+    const peer = await pendingPeer;
+    if (!peer) return;
+    try {
+      this.handleMessage(socket, peer, parseClientMessage(data));
+    } catch {
+      socket.close(1003, "Invalid message");
+    }
   }
 
   private handleMessage(socket: Socket, peer: GroupPeer, message: ClientSignalingMessage) {
@@ -108,4 +111,33 @@ export class GroupGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 function send(socket: Socket, message: ServerSignalingMessage) {
   socket.send(JSON.stringify(message));
+}
+
+async function closeIfSignedOut(socket: Socket, pendingPeer: Promise<GroupPeer | undefined>): Promise<void> {
+  if (!(await pendingPeer)) socket.close(UNAUTHORIZED, "Sign in required");
+}
+
+/** Any connector can send anything, so a message is checked before the gateway acts on or relays it. */
+function parseClientMessage(data: Buffer): ClientSignalingMessage {
+  const message: unknown = JSON.parse(data.toString());
+  if (!isClientSignalingMessage(message)) throw new Error("Invalid signaling message");
+  return message;
+}
+
+function isClientSignalingMessage(value: unknown): value is ClientSignalingMessage {
+  if (typeof value !== "object" || value === null || !("type" in value)) return false;
+  if (value.type === "join") return "groupCode" in value && typeof value.groupCode === "string";
+  return (
+    value.type === "signal" &&
+    "to" in value &&
+    typeof value.to === "string" &&
+    "signal" in value &&
+    isSignal(value.signal)
+  );
+}
+
+function isSignal(value: unknown): value is Signal {
+  if (typeof value !== "object" || value === null) return false;
+  if ("sdp" in value) return typeof value.sdp === "string" && "type" in value && typeof value.type === "string";
+  return "candidate" in value && typeof value.candidate === "string" && "mid" in value && typeof value.mid === "string";
 }

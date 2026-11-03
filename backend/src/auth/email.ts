@@ -20,21 +20,33 @@ export type SendEmail = (email: Email) => void;
 export function createEmailSender(apiKey: string | undefined): SendEmail {
   const logger = new Logger("Email");
 
-  if (!apiKey) {
-    return ({ to, subject, link }) => logger.log(`"${subject}" for ${to}: ${link}`);
+  if (apiKey === undefined || apiKey === "") {
+    return ({ to, subject, link }) => {
+      logger.log(`"${subject}" for ${to}: ${link}`);
+    };
   }
 
   const resend = new Resend(apiKey);
 
+  const send = async ({ to, subject, text, link }: Email): Promise<void> => {
+    try {
+      const { error } = await resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        text: `${text}\n\n${link}`,
+        html: html(text, link),
+      });
+      if (error) logger.error(`Failed to send "${subject}" to ${to}: ${error.message}`);
+    } catch (err) {
+      logger.error(`Failed to send "${subject}" to ${to}`, err);
+    }
+  };
+
   // Not awaited by callers: waiting on the provider would let response times reveal which
   // emails have accounts.
-  return ({ to, subject, text, link }) => {
-    resend.emails
-      .send({ from: FROM, to, subject, text: `${text}\n\n${link}`, html: html(text, link) })
-      .then(({ error }) => {
-        if (error) logger.error(`Failed to send "${subject}" to ${to}: ${error.message}`);
-      })
-      .catch((err: unknown) => logger.error(`Failed to send "${subject}" to ${to}`, err));
+  return (email) => {
+    void send(email);
   };
 }
 

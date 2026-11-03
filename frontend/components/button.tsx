@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { buttonClass, press, type ButtonSize, type ButtonVariant } from "@fs-career/ui/button";
 
@@ -20,7 +20,7 @@ interface ButtonProps {
 // colliding with Motion's.
 const MotionLink = motion.create(Link);
 
-export function Button({ href, children, variant = "ink", size = "md", className }: ButtonProps) {
+export function Button({ href, children, variant = "ink", size = "md", className }: ButtonProps): ReactElement {
   return (
     <MotionLink href={href} {...press} className={buttonClass(variant, size, className)}>
       {children}

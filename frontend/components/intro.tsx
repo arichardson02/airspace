@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { markPath, markViewBox } from "@/components/mark";
 
@@ -11,11 +11,11 @@ export const INTRO_SECONDS = 1.5;
 
 // The mark draws itself in outline, fills, and the curtain fades to reveal the hero.
 // Visitors who prefer reduced motion never see it.
-export function Intro() {
+export function Intro(): ReactElement | null {
   const [done, setDone] = useState(false);
   const reduceMotion = useReducedMotion();
 
-  if (reduceMotion || done) return null;
+  if (reduceMotion === true || done) return null;
 
   return (
     <motion.div
@@ -24,7 +24,9 @@ export function Intro() {
       initial={{ opacity: 1 }}
       animate={{ opacity: 0 }}
       transition={{ duration: 0.5, ease, delay: INTRO_SECONDS - 0.5 }}
-      onAnimationComplete={() => setDone(true)}
+      onAnimationComplete={() => {
+        setDone(true);
+      }}
     >
       <motion.svg
         viewBox={markViewBox}

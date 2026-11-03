@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type ReactElement, type SubmitEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Hand } from "lucide-react";
 import type { ConnectorStatus, CoopStatus, Pilot } from "@fs-career/contracts";
@@ -11,7 +11,7 @@ import { ease, rise } from "../lib/motion";
 // How long the dual input warning stays up after the last time both pilots grabbed the controls.
 const DUAL_INPUT_SHOWN_MS = 3_000;
 
-export function Coop({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }) {
+export function Coop({ pilot, status }: { pilot: Pilot; status: ConnectorStatus }): ReactElement {
   const { coop, sim } = status;
 
   return (
@@ -35,11 +35,11 @@ export function Coop({ pilot, status }: { pilot: Pilot; status: ConnectorStatus 
   );
 }
 
-function JoinForm({ coop, simConnected }: { coop: CoopStatus; simConnected: boolean }) {
+function JoinForm({ coop, simConnected }: { coop: CoopStatus; simConnected: boolean }): ReactElement {
   const [code, setCode] = useState(coop.state === "joining" ? coop.groupCode : "");
   const joining = coop.state === "joining";
 
-  function join(event: FormEvent) {
+  function join(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     send({ type: "join-group", groupCode: code });
   }
@@ -51,14 +51,18 @@ function JoinForm({ coop, simConnected }: { coop: CoopStatus; simConnected: bool
           label="Group code"
           name="groupCode"
           value={code}
-          onChange={(event) => setCode(event.target.value)}
+          onChange={(event) => {
+            setCode(event.target.value);
+          }}
           placeholder="Pick one and share it with your co-pilot"
           autoComplete="off"
           spellCheck={false}
           disabled={joining}
           className="select-text"
         />
-        {coop.state === "off" && coop.error && <FormMessage>{coop.error}</FormMessage>}
+        {coop.state === "off" && coop.error !== undefined && coop.error !== "" && (
+          <FormMessage>{coop.error}</FormMessage>
+        )}
         {!simConnected && (
           <FormMessage tone="info">Start Microsoft Flight Simulator and load a flight to join a group.</FormMessage>
         )}
@@ -71,7 +75,7 @@ function JoinForm({ coop, simConnected }: { coop: CoopStatus; simConnected: bool
   );
 }
 
-function Group({ pilot, coop }: { pilot: Pilot; coop: Extract<CoopStatus, { state: "joined" }> }) {
+function Group({ pilot, coop }: { pilot: Pilot; coop: Extract<CoopStatus, { state: "joined" }> }): ReactElement {
   const youFly = coop.flyer === pilot.id;
   const flyerName = youFly ? "You" : (coop.peers.find((peer) => peer.pilotId === coop.flyer)?.name ?? "Your co-pilot");
   const dualInput = useRecent(coop.dualInputAt, DUAL_INPUT_SHOWN_MS);
@@ -116,7 +120,14 @@ function Group({ pilot, coop }: { pilot: Pilot; coop: Extract<CoopStatus, { stat
           </p>
         )}
 
-        <ActionButton variant="ghost" size="sm" onClick={() => send({ type: "leave-group" })} className="mt-6">
+        <ActionButton
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            send({ type: "leave-group" });
+          }}
+          className="mt-6"
+        >
           Leave group
         </ActionButton>
       </Card>
@@ -124,7 +135,7 @@ function Group({ pilot, coop }: { pilot: Pilot; coop: Extract<CoopStatus, { stat
   );
 }
 
-function Member({ name, detail, flying }: { name: string; detail: string; flying: boolean }) {
+function Member({ name, detail, flying }: { name: string; detail: string; flying: boolean }): ReactElement {
   return (
     <li className="flex items-center gap-3 border-t border-paper/10 py-3.5">
       <Avatar name={name} inverted={!flying} />
@@ -143,10 +154,17 @@ function useRecent(at: number | undefined, forMs: number): boolean {
   const recent = at !== undefined && now - at < forMs;
 
   useEffect(() => {
-    if (at === undefined) return;
+    if (at === undefined) return undefined;
     setNow(Date.now());
-    const timer = setTimeout(() => setNow(Date.now()), Math.max(0, at + forMs - Date.now()));
-    return () => clearTimeout(timer);
+    const timer = setTimeout(
+      () => {
+        setNow(Date.now());
+      },
+      Math.max(0, at + forMs - Date.now()),
+    );
+    return () => {
+      clearTimeout(timer);
+    };
   }, [at, forMs]);
 
   return recent;

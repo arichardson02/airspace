@@ -2,49 +2,46 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type ReactElement } from "react";
 import { ArrowRight } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
+import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
-export function LoginForm() {
+export function LoginForm(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = safeRedirect(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string>();
   const [unverified, setUnverified] = useState(false);
   const [resent, setResent] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { error, pending, settle, handleSubmit } = useAuthForm();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setPending(true);
-    setError(undefined);
+  async function send(form: FormData): Promise<void> {
     setUnverified(false);
 
-    const { error } = await authClient.signIn.email({
+    const { error: failure } = await authClient.signIn.email({
       email: formText(form, "email"),
       password: formText(form, "password"),
     });
 
-    if (!error) {
+    if (!failure) {
       router.replace(redirect);
       router.refresh();
       return;
     }
 
-    setPending(false);
-    if (error.code === "EMAIL_NOT_VERIFIED") setUnverified(true);
-    else if (error.status === 429) setError("Too many attempts. Wait a minute and try again.");
-    else if (error.code === "INVALID_EMAIL_OR_PASSWORD") setError("That email and password don't match an account.");
-    else setError(error.message ?? "Couldn't sign in. Try again.");
+    if (failure.code === "EMAIL_NOT_VERIFIED") {
+      settle();
+      setUnverified(true);
+    } else if (failure.status === 429) settle("Too many attempts. Wait a minute and try again.");
+    else if (failure.code === "INVALID_EMAIL_OR_PASSWORD") settle("That email and password don't match an account.");
+    else settle(failure.message ?? "Couldn't sign in. Try again.");
   }
 
-  async function resend() {
+  async function resend(): Promise<void> {
     await authClient.sendVerificationEmail({ email, callbackURL: redirect });
     setResent(true);
   }
@@ -65,7 +62,7 @@ export function LoginForm() {
         </>
       }
     >
-      <form onSubmit={submit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field
           label="Email"
           name="email"
@@ -73,7 +70,9 @@ export function LoginForm() {
           autoComplete="email"
           required
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            setEmail(event.target.value);
+          }}
         />
         <Field
           label="Password"
@@ -88,7 +87,7 @@ export function LoginForm() {
           }
         />
 
-        {error && <FormMessage>{error}</FormMessage>}
+        {error !== undefined && <FormMessage>{error}</FormMessage>}
         {unverified && (
           <FormMessage tone="info">
             {resent ? (
@@ -98,7 +97,9 @@ export function LoginForm() {
                 Confirm your email first. We sent a link when you signed up.{" "}
                 <button
                   type="button"
-                  onClick={resend}
+                  onClick={() => {
+                    void resend();
+                  }}
                   className="font-medium text-paper underline-offset-2 hover:underline"
                 >
                   Send it again

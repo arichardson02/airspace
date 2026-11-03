@@ -75,7 +75,7 @@ function Title({ children, aside }: { children: ReactNode; aside?: ReactNode }) 
   return (
     <div className="mb-4 flex items-baseline justify-between">
       <h4 className="display text-xl">{children}</h4>
-      {aside && <span className="text-xs text-paper/50">{aside}</span>}
+      {aside !== undefined && <span className="text-xs text-paper/50">{aside}</span>}
     </div>
   );
 }
@@ -295,12 +295,12 @@ function FlyScene({ active }: { active: boolean }) {
 
       <dl className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          ["Altitude", <Counter key="alt" value={active ? now.altitude : 0} />, "ft"],
-          ["Ground speed", <Counter key="gs" value={active ? now.speed : 0} />, "kts"],
-          ["Heading", "161", "°"],
-          ["Vertical speed", <Counter key="vs" value={active ? now.vs : 0} />, "fpm"],
-        ].map(([label, value, unit]) => (
-          <Panel key={label as string} className="py-2.5">
+          { label: "Altitude", value: <Counter value={active ? now.altitude : 0} />, unit: "ft" },
+          { label: "Ground speed", value: <Counter value={active ? now.speed : 0} />, unit: "kts" },
+          { label: "Heading", value: "161", unit: "°" },
+          { label: "Vertical speed", value: <Counter value={active ? now.vs : 0} />, unit: "fpm" },
+        ].map(({ label, value, unit }) => (
+          <Panel key={label} className="py-2.5">
             <dt className="text-[10px] text-paper/50">{label}</dt>
             <dd className="mt-0.5 text-base font-medium">
               {value}

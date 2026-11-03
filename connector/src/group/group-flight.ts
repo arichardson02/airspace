@@ -143,8 +143,7 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
             changed();
             setFlyer(self, 0);
           },
-          onMessage: (pilotId, raw) => {
-            const message = raw as CoopMessage;
+          onMessage: (pilotId, message) => {
             switch (message.type) {
               case "flight":
                 if (pilotId !== flyer) break;

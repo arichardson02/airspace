@@ -1,34 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, type ReactElement } from "react";
 import { ArrowRight } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Field, FormMessage, formText } from "@/components/auth/field";
+import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
-export default function ForgotPasswordPage() {
+export default function ForgotPasswordPage(): ReactElement {
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string>();
-  const [pending, setPending] = useState(false);
+  const { error, pending, settle, handleSubmit } = useAuthForm();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setPending(true);
-    setError(undefined);
-
+  async function send(form: FormData): Promise<void> {
     // The emailed link lands on /reset-password?token=…
-    const { error } = await authClient.requestPasswordReset({
+    const { error: failure } = await authClient.requestPasswordReset({
       email: formText(form, "email"),
       redirectTo: "/reset-password",
     });
 
-    setPending(false);
-    if (!error) setSent(true);
-    else if (error.status === 429) setError("Too many attempts. Wait a minute and try again.");
-    else setError(error.message ?? "Couldn't send the email. Try again.");
+    if (!failure) {
+      settle();
+      setSent(true);
+    } else if (failure.status === 429) settle("Too many attempts. Wait a minute and try again.");
+    else settle(failure.message ?? "Couldn't send the email. Try again.");
   }
 
   const footer = (
@@ -52,9 +48,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthCard title="Reset your password" subtitle="Enter your email and we'll send you a link." footer={footer}>
-      <form onSubmit={submit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field label="Email" name="email" type="email" autoComplete="email" required />
-        {error && <FormMessage>{error}</FormMessage>}
+        {error !== undefined && <FormMessage>{error}</FormMessage>}
         <ActionButton type="submit" variant="paper" disabled={pending} className="mt-1 w-full">
           {pending ? "Sending…" : "Send Link"}
           {!pending && <ArrowRight className="size-4" />}

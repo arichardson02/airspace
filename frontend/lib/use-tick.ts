@@ -8,8 +8,12 @@ export function useTick(ms: number): number {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((value) => value + 1), ms);
-    return () => clearInterval(id);
+    const id = setInterval(() => {
+      setTick((value) => value + 1);
+    }, ms);
+    return () => {
+      clearInterval(id);
+    };
   }, [ms]);
 
   return tick;

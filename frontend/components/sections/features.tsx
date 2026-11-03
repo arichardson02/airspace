@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { motion, useTransform } from "framer-motion";
 import { ScrollGroup, Slide, Words, useScrollProgress } from "@/components/scroll-group";
 import { cn } from "@/lib/utils";
@@ -173,7 +174,7 @@ const features = [
   },
 ];
 
-export function Features() {
+export function Features(): ReactElement {
   return (
     <section
       id="features"

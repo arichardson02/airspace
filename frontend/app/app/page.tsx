@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Suspense, type ReactElement } from "react";
 import { requireUser } from "@/lib/session";
 import { Dashboard } from "./dashboard";
 
 export const metadata: Metadata = { title: "Dashboard · Airspace" };
 
-export default function AppPage() {
+export default function AppPage(): ReactElement {
   return (
     <Suspense>
       <SignedInDashboard />

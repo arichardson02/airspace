@@ -1,11 +1,11 @@
 "use client";
 
-import { createContext, useContext, useRef, type ReactNode } from "react";
+import { createContext, useContext, useRef, type ReactElement, type ReactNode } from "react";
 import { motion, useMotionValue, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 /** One edge of a useScroll offset, for example "start 92%". */
 type Edge = NonNullable<Parameters<typeof useScroll>[0]>["offset"] extends (infer T)[] | undefined ? T : never;
-import { cn } from "@/lib/utils";
 
 // Reveals tied to the scrollbar rather than to a trigger: an element's progress runs 0 → 1
 // while it climbs through the lower part of the viewport, so it rises as you scroll down
@@ -29,7 +29,12 @@ interface ScrollGroupProps {
   to?: Edge;
 }
 
-export function ScrollGroup({ children, className, from = "start 92%", to = "start 50%" }: ScrollGroupProps) {
+export function ScrollGroup({
+  children,
+  className,
+  from = "start 92%",
+  to = "start 50%",
+}: ScrollGroupProps): ReactElement {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: [from, to] });
 
@@ -51,6 +56,10 @@ const offsets: Record<Side, { x: number; y: number }> = {
   right: { x: 40, y: 0 },
 };
 
+// Defaults for `range`, kept out of the props so each render gets the same array.
+const wholeGroup: [number, number] = [0, 1];
+const headingRange: [number, number] = [0, 0.7];
+
 interface SlideProps {
   children: ReactNode;
   className?: string;
@@ -59,7 +68,7 @@ interface SlideProps {
   range?: [number, number];
 }
 
-export function Slide({ children, className, from = "bottom", range = [0, 1] }: SlideProps) {
+export function Slide({ children, className, from = "bottom", range = wholeGroup }: SlideProps): ReactElement {
   const progress = useScrollProgress();
   const offset = offsets[from];
   const x = useTransform(progress, range, [offset.x, 0]);
@@ -94,14 +103,15 @@ interface WordsProps {
 }
 
 // A heading that lands one word at a time, left to right, inside the given range.
-export function Words({ text, className, from = "top", range = [0, 0.7] }: WordsProps) {
-  const words = text.split(" ");
+export function Words({ text, className, from = "top", range = headingRange }: WordsProps): ReactElement {
+  // Each word is keyed by where it starts in the text, which stays unique when a word repeats.
+  const words = Array.from(text.matchAll(/[^ ]+/g), (match) => ({ word: match[0], at: match.index }));
   const span = (range[1] - range[0]) / (words.length + 1.5);
 
   return (
     <span className={cn("inline-flex flex-wrap gap-x-[0.25em]", className)}>
-      {words.map((word, index) => (
-        <Word key={index} text={word} from={from} range={[range[0] + index * span, range[0] + (index + 2.5) * span]} />
+      {words.map(({ word, at }, index) => (
+        <Word key={at} text={word} from={from} range={[range[0] + index * span, range[0] + (index + 2.5) * span]} />
       ))}
     </span>
   );

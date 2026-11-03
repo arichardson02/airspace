@@ -1,20 +1,22 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type ReactElement } from "react";
 import { ReactLenis } from "lenis/react";
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 
-function subscribe(onChange: () => void) {
+function subscribe(onChange: () => void): () => void {
   const media = window.matchMedia(reducedMotionQuery);
   media.addEventListener("change", onChange);
-  return () => media.removeEventListener("change", onChange);
+  return () => {
+    media.removeEventListener("change", onChange);
+  };
 }
 
 // Lenis smooth scrolling for the whole document. It lives in the root layout, so one
 // instance persists across page navigations. Visitors who prefer reduced motion get
 // native scrolling.
-export function SmoothScroll() {
+export function SmoothScroll(): ReactElement | null {
   const reduceMotion = useSyncExternalStore(
     subscribe,
     () => window.matchMedia(reducedMotionQuery).matches,

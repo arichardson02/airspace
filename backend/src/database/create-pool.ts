@@ -6,7 +6,7 @@ import { Pool } from "pg";
  * settings override the ssl option, and its sslmode=require would verify against system CAs.
  */
 export function createPool(databaseUrl: string, caCert?: string): Pool {
-  if (!caCert) {
+  if (caCert === undefined || caCert === "") {
     return new Pool({ connectionString: databaseUrl });
   }
 

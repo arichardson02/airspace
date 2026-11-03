@@ -1,6 +1,6 @@
 // The desktop app's release build sets AIRSPACE_BUILD_* to its built-in settings, so a stray .env in
 // whatever folder it starts from can't redirect it.
-if (!process.env.AIRSPACE_BUILD_VERSION) {
+if (process.env.AIRSPACE_BUILD_VERSION === undefined || process.env.AIRSPACE_BUILD_VERSION === "") {
   try {
     // Loads connector/.env when present; real environment variables take precedence.
     process.loadEnvFile();

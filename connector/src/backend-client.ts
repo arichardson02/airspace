@@ -3,7 +3,10 @@ import { createORPCClient, ORPCError } from "@orpc/client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
 import { contract, type ApiClient, type ConnectorMessage, type ConnectorMessageType } from "@fs-career/contracts";
 
-type PayloadOf<T extends ConnectorMessageType> = Extract<ConnectorMessage, { type: T }>["payload"];
+/** A message as callers hand it over; `send` numbers and timestamps it. */
+type UnsentMessage = {
+  [T in ConnectorMessageType]: { type: T; payload: Extract<ConnectorMessage, { type: T }>["payload"] };
+}[ConnectorMessageType];
 
 // Oldest messages are dropped past this, so a long backend outage can't exhaust memory.
 const MAX_QUEUED_MESSAGES = 10_000;
@@ -45,8 +48,8 @@ export class BackendClient {
     await this.flush();
   }
 
-  send<T extends ConnectorMessageType>(type: T, payload: PayloadOf<T>): void {
-    this.queue.push({ type, seq: this.seq++, ts: new Date().toISOString(), payload } as ConnectorMessage);
+  send(message: UnsentMessage): void {
+    this.queue.push({ ...message, seq: this.seq++, ts: new Date().toISOString() });
 
     if (this.queue.length > MAX_QUEUED_MESSAGES) {
       this.queue.splice(0, this.queue.length - MAX_QUEUED_MESSAGES);
@@ -65,6 +68,7 @@ export class BackendClient {
       const messages = this.queue.slice(0, MAX_BATCH_SIZE);
 
       try {
+        // oxlint-disable-next-line no-await-in-loop -- batches go up in order, one at a time, so the backend sees seq order
         await this.client.ingest.batch({ connectorSessionId: this.sessionId, messages });
       } catch (err) {
         if (err instanceof ORPCError && err.status === 401) {

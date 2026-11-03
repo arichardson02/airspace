@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Gauge, Users } from "lucide-react";
 import type { ConnectorStatus, Pilot } from "@fs-career/contracts";
@@ -6,7 +7,7 @@ import { Card, Pill } from "../components/card";
 import { rise } from "../lib/motion";
 
 // SimConnect reports the simulator by its internal codename.
-const simNames: Record<string, string> = { KittyHawk: "Microsoft Flight Simulator 2020" };
+const simNames = new Map([["KittyHawk", "Microsoft Flight Simulator 2020"]]);
 
 interface HomeProps {
   pilot: Pilot;
@@ -14,7 +15,7 @@ interface HomeProps {
   onOpenCoop: () => void;
 }
 
-export function Home({ pilot, status, onOpenCoop }: HomeProps) {
+export function Home({ pilot, status, onOpenCoop }: HomeProps): ReactElement {
   const { sim, coop } = status;
   const firstName = pilot.name.split(" ")[0];
 
@@ -39,7 +40,7 @@ export function Home({ pilot, status, onOpenCoop }: HomeProps) {
             </div>
             <p className="mt-2.5 text-sm leading-relaxed text-paper/55">
               {sim.state === "connected"
-                ? `${simNames[sim.name] ?? sim.name} is running. Airspace is connected and ready.`
+                ? `${simNames.get(sim.name) ?? sim.name} is running. Airspace is connected and ready.`
                 : "Waiting for Microsoft Flight Simulator. Start it and Airspace connects on its own."}
             </p>
           </Card>

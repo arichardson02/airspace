@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "node:path";
-import { toCommand } from "../../connector/src/app/commands.js";
+import { connectorCommandSchema } from "@fs-career/contracts";
 import { createConnector } from "../../connector/src/app/create.js";
 import { logToFile } from "./log.js";
 
@@ -43,15 +43,16 @@ function createWindow(): void {
     return { action: "deny" };
   });
 
-  const devServer = process.env.VITE_DEV_SERVER_URL;
-  if (devServer) void window.loadURL(devServer);
+  const devServer = process.env.VITE_DEV_SERVER_URL ?? "";
+  if (devServer !== "") void window.loadURL(devServer);
   else void window.loadFile(join(__dirname, "../renderer/index.html"));
 }
 
 ipcMain.handle("connector:status", () => status.get());
-ipcMain.on("connector:command", (_event, value: unknown) => {
-  const command = toCommand(value);
-  if (command) connector.handle(command);
+// The page is untrusted input: the schema checks whatever it sends before the connector sees it.
+ipcMain.on("connector:command", (_event, value) => {
+  const parsed = connectorCommandSchema.safeParse(value);
+  if (parsed.success) connector.handle(parsed.data);
 });
 ipcMain.on("window:minimize", () => window?.minimize());
 ipcMain.on("window:close", () => window?.close());
@@ -64,7 +65,9 @@ app.on("second-instance", () => {
 });
 
 // Closing the window quits the app, and the connector with it.
-app.on("window-all-closed", () => app.quit());
+app.on("window-all-closed", () => {
+  app.quit();
+});
 
 let stopped = false;
 app.on("will-quit", (event) => {
@@ -77,7 +80,10 @@ app.on("will-quit", (event) => {
   });
 });
 
-void app.whenReady().then(() => {
+async function start(): Promise<void> {
+  await app.whenReady();
   createWindow();
   connector.start();
-});
+}
+
+void start();

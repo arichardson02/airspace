@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { Footer } from "@/components/footer";
 import { Intro } from "@/components/intro";
 import { Navbar } from "@/components/navbar";
@@ -7,7 +8,7 @@ import { Features } from "@/components/sections/features";
 import { Hero } from "@/components/sections/hero";
 import { Tour } from "@/components/sections/tour";
 
-export default function Home() {
+export default function Home(): ReactElement {
   return (
     <>
       <Intro />

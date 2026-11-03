@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
 import { Mark } from "@/components/mark";
 import { sections, siteConfig } from "@/config/site";
 
@@ -13,7 +14,7 @@ function DiscordIcon() {
   );
 }
 
-export function Footer() {
+export function Footer(): ReactElement {
   return (
     <footer className="bg-paper text-ink">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { InputHTMLAttributes, ReactElement, ReactNode } from "react";
 import { cn } from "./cn";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -7,7 +7,7 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   aside?: ReactNode;
 }
 
-export function Field({ label, aside, className, id, name, ...input }: FieldProps) {
+export function Field({ label, aside, className, id, name, ...input }: FieldProps): ReactElement {
   const inputId = id ?? name;
 
   return (
@@ -32,7 +32,13 @@ export function Field({ label, aside, className, id, name, ...input }: FieldProp
 }
 
 /** An error or notice under a form. Monotone like the rest of the brand: errors get weight, not red. */
-export function FormMessage({ children, tone = "error" }: { children: ReactNode; tone?: "error" | "info" }) {
+export function FormMessage({
+  children,
+  tone = "error",
+}: {
+  children: ReactNode;
+  tone?: "error" | "info";
+}): ReactElement {
   return (
     <p
       role={tone === "error" ? "alert" : "status"}

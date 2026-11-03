@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import dots from "@/lib/world-dots.json";
 
@@ -9,7 +10,7 @@ const HEIGHT = 500;
 // Two decimals, so the server and the browser print the same path string.
 const round = (n: number) => Math.round(n * 100) / 100;
 
-// Equirectangular, matching scripts/world-dots.mjs.
+// Equirectangular, matching scripts/world-dots.mts.
 const project = ([lat, lon]: [number, number]) => ({
   x: round(((lon + 180) / 360) * WIDTH),
   y: round(((90 - lat) / 180) * HEIGHT),
@@ -51,7 +52,7 @@ function arc(from: keyof typeof airports, to: keyof typeof airports): string {
 }
 
 // The dot world map behind the hero, with flights drawing themselves between airports.
-export function FlightMap({ className }: { className?: string }) {
+export function FlightMap({ className }: { className?: string }): ReactElement {
   return (
     <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="xMidYMid slice" aria-hidden className={className}>
       <g fill="currentColor" opacity={0.28}>
@@ -74,9 +75,12 @@ export function FlightMap({ className }: { className?: string }) {
               animate={{ pathLength: [0, 1, 1], opacity: [0.9, 0.9, 0] }}
               transition={{ duration: 7, times: [0, 0.55, 1], delay, repeat: Infinity, ease: "easeInOut" }}
             />
-            {[a, b].map((point, end) => (
+            {[
+              { airport: from, point: a, start: delay },
+              { airport: to, point: b, start: delay + 3.5 },
+            ].map(({ airport, point, start }) => (
               <motion.circle
-                key={end}
+                key={airport}
                 cx={point.x}
                 cy={point.y}
                 r={2.5}
@@ -84,7 +88,7 @@ export function FlightMap({ className }: { className?: string }) {
                 stroke="none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 1, 0] }}
-                transition={{ duration: 7, times: [0, 0.1, 0.55, 1], delay: delay + end * 3.5, repeat: Infinity }}
+                transition={{ duration: 7, times: [0, 0.1, 0.55, 1], delay: start, repeat: Infinity }}
               />
             ))}
           </g>

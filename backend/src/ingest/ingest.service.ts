@@ -8,7 +8,13 @@ import {
 } from "@fs-career/contracts";
 import { DRIZZLE, type Database } from "../database/database.module.js";
 import { connectorSessions } from "./handlers/hello/hello.schema.js";
-import { INGEST_HANDLERS, type AnyIngestHandler, type IngestContext, type IngestHandler } from "./ingest-handler.js";
+import {
+  INGEST_HANDLERS,
+  type AnyIngestHandler,
+  type IngestContext,
+  type IngestHandlerOf,
+  type MessageOf,
+} from "./ingest-handler.js";
 
 @Injectable()
 export class IngestService implements OnModuleInit {
@@ -20,8 +26,8 @@ export class IngestService implements OnModuleInit {
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(INGEST_HANDLERS) private readonly handlers: AnyIngestHandler[],
   ) {
-    this.sessionHandlers = handlers.filter((handler) => handler.createsSession);
-    this.dataHandlers = handlers.filter((handler) => !handler.createsSession);
+    this.sessionHandlers = handlers.filter((handler) => handler.createsSession === true);
+    this.dataHandlers = handlers.filter((handler) => handler.createsSession !== true);
   }
 
   /** Fails startup when a contract message type has no handler, or more than one. */
@@ -37,12 +43,7 @@ export class IngestService implements OnModuleInit {
   }
 
   async ingest(batch: IngestBatch, userId: string): Promise<number> {
-    const messagesByType = new Map<ConnectorMessageType, ConnectorMessage[]>();
-    for (const message of [...batch.messages].sort((a, b) => a.seq - b.seq)) {
-      const group = messagesByType.get(message.type) ?? [];
-      group.push(message);
-      messagesByType.set(message.type, group);
-    }
+    const messages = batch.messages.toSorted((a, b) => a.seq - b.seq);
 
     return this.db.transaction(async (tx) => {
       const context: IngestContext = {
@@ -52,15 +53,15 @@ export class IngestService implements OnModuleInit {
         receivedAt: new Date(),
       };
 
-      await this.runHandlers(this.sessionHandlers, messagesByType, context);
+      await runHandlers(this.sessionHandlers, messages, context);
 
-      const [session] = await tx
+      const updated = await tx
         .update(connectorSessions)
         .set({ lastSeenAt: context.receivedAt })
         .where(and(eq(connectorSessions.id, context.connectorSessionId), eq(connectorSessions.userId, userId)))
         .returning({ id: connectorSessions.id });
 
-      if (!session) {
+      if (updated.length === 0) {
         // Retrying can't fix a session we never saw a hello for (or one another pilot owns), so
         // drop the batch instead of failing and leaving the connector stuck resending it.
         this.logger.warn(
@@ -69,23 +70,30 @@ export class IngestService implements OnModuleInit {
         return 0;
       }
 
-      await this.runHandlers(this.dataHandlers, messagesByType, context);
+      await runHandlers(this.dataHandlers, messages, context);
 
       return batch.messages.length;
     });
   }
+}
 
-  private async runHandlers(
-    handlers: AnyIngestHandler[],
-    messagesByType: Map<ConnectorMessageType, ConnectorMessage[]>,
-    context: IngestContext,
-  ): Promise<void> {
-    for (const handler of handlers) {
-      const messages = messagesByType.get(handler.type);
-      if (messages?.length) {
-        // Grouping by type guarantees these messages match the handler's type.
-        await (handler as IngestHandler).handle(messages, context);
-      }
-    }
+/** Runs the handlers one at a time, in order, since they share the transaction's connection. */
+async function runHandlers(
+  handlers: AnyIngestHandler[],
+  messages: ConnectorMessage[],
+  context: IngestContext,
+): Promise<void> {
+  for (const handler of handlers) {
+    // oxlint-disable-next-line no-await-in-loop -- one pg connection per transaction, and handler order matters
+    await runHandler(handler, messages, context);
   }
+}
+
+async function runHandler<T extends ConnectorMessageType>(
+  handler: IngestHandlerOf<T>,
+  messages: ConnectorMessage[],
+  context: IngestContext,
+): Promise<void> {
+  const own = messages.filter((message): message is MessageOf<T> => message.type === handler.type);
+  if (own.length > 0) await handler.handle(own, context);
 }

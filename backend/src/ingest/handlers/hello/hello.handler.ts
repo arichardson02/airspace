@@ -5,6 +5,7 @@ import { connectorSessions } from "./hello.schema.js";
 @Injectable()
 export class HelloIngestHandler implements IngestHandler<"connector.hello"> {
   readonly type = "connector.hello";
+  // fallow-ignore-next-line unused-class-member -- IngestService reads it through the IngestHandler interface
   readonly createsSession = true;
 
   async handle(

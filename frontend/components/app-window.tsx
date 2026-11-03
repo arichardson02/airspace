@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ interface AppWindowProps {
 }
 
 // A browser window showing the app, for the mock pages on the marketing site.
-export function AppWindow({ url, children, className }: AppWindowProps) {
+export function AppWindow({ url, children, className }: AppWindowProps): ReactElement {
   return (
     <div
       className={cn(

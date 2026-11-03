@@ -2,45 +2,43 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type ReactElement } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
+import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export function SignupForm() {
+export function SignupForm(): ReactElement {
   const searchParams = useSearchParams();
   const redirect = safeRedirect(searchParams.get("redirect"));
   const [sentTo, setSentTo] = useState<string>();
-  const [error, setError] = useState<string>();
-  const [pending, setPending] = useState(false);
+  const { error, pending, settle, handleSubmit } = useAuthForm();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  async function send(form: FormData): Promise<void> {
     const email = formText(form, "email");
-    setPending(true);
-    setError(undefined);
 
     // The verification link signs the pilot in and lands them on `redirect`.
-    const { error } = await authClient.signUp.email({
+    const { error: failure } = await authClient.signUp.email({
       name: formText(form, "name").trim(),
       email,
       password: formText(form, "password"),
       callbackURL: redirect,
     });
 
-    setPending(false);
-    if (!error) setSentTo(email);
-    else if (error.status === 429) setError("Too many attempts. Wait a minute and try again.");
-    else if (error.code?.startsWith("USER_ALREADY_EXISTS")) setError("There's already an account with that email.");
-    else setError(error.message ?? "Couldn't create your account. Try again.");
+    if (!failure) {
+      settle();
+      setSentTo(email);
+    } else if (failure.status === 429) settle("Too many attempts. Wait a minute and try again.");
+    else if (failure.code?.startsWith("USER_ALREADY_EXISTS") === true) {
+      settle("There's already an account with that email.");
+    } else settle(failure.message ?? "Couldn't create your account. Try again.");
   }
 
-  if (sentTo) {
+  if (sentTo !== undefined && sentTo !== "") {
     return (
       <AuthCard
         title="Check your inbox"
@@ -80,7 +78,7 @@ export function SignupForm() {
         </>
       }
     >
-      <form onSubmit={submit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field
           label="Pilot name"
           name="name"
@@ -100,7 +98,7 @@ export function SignupForm() {
           placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
         />
 
-        {error && <FormMessage>{error}</FormMessage>}
+        {error !== undefined && <FormMessage>{error}</FormMessage>}
 
         <ActionButton type="submit" variant="paper" disabled={pending} className="mt-1 w-full">
           {pending ? "Creating account…" : "Get Started"}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Counter } from "@/components/counter";
 import { RollStack } from "@/components/roll-stack";
@@ -11,8 +11,20 @@ import { cn } from "@/lib/utils";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+interface OnlinePilot {
+  name: string;
+  route: string;
+  aircraft: string;
+}
+
+interface AirbornePilot extends OnlinePilot {
+  altitude: number;
+  /** Feet gained (or lost, when negative) every few seconds. */
+  climb: number;
+}
+
 // Sample club. Everything here moves on a timer so the section reads as live.
-const pilots = [
+const pilots: (OnlinePilot | AirbornePilot)[] = [
   { name: "Mara K.", route: "EGLL → LFPG", aircraft: "A320neo", altitude: 31000, climb: 400 },
   { name: "Jonas", route: "KSEA → KPDX", aircraft: "CRJ-700", altitude: 24000, climb: 650 },
   { name: "Priya", route: "KLAX → KSFO", aircraft: "737-800", altitude: 36000, climb: -300 },
@@ -119,9 +131,9 @@ function OnlineNow() {
                 {pilot.route} · {pilot.aircraft}
               </p>
             </div>
-            {pilot.altitude && (
+            {"altitude" in pilot && (
               <span className="text-xs text-paper/70">
-                <Counter value={pilot.altitude + pilot.climb! * ((tick + index) % 6)} /> ft
+                <Counter value={pilot.altitude + pilot.climb * ((tick + index) % 6)} /> ft
               </span>
             )}
           </li>
@@ -178,31 +190,37 @@ function GroupFlight() {
         <RollStack
           axis="x"
           current={current}
-          items={groupFlights.map((item) => (
-            <div key={item.route}>
-              <p className="text-xs text-paper/60">
-                {item.when} · {item.city}
-              </p>
-              <p className="display mt-1 text-3xl sm:text-4xl">{item.route}</p>
-            </div>
-          ))}
+          items={groupFlights.map((item) => ({
+            id: item.route,
+            content: (
+              <div>
+                <p className="text-xs text-paper/60">
+                  {item.when} · {item.city}
+                </p>
+                <p className="display mt-1 text-3xl sm:text-4xl">{item.route}</p>
+              </div>
+            ),
+          }))}
         />
         <RollStack
           axis="y"
           current={current}
           className="shrink-0"
-          items={groupFlights.map((item) => (
-            <div key={item.route} className="flex items-center">
-              {item.going.slice(0, 5).map((name, index) => (
-                <Avatar
-                  key={name}
-                  name={name}
-                  className={cn("border-2 border-ink bg-paper text-ink", index > 0 && "-ml-2")}
-                />
-              ))}
-              <span className="ml-3 text-sm font-medium">{item.going.length} going</span>
-            </div>
-          ))}
+          items={groupFlights.map((item) => ({
+            id: item.route,
+            content: (
+              <div className="flex items-center">
+                {item.going.slice(0, 5).map((name, index) => (
+                  <Avatar
+                    key={name}
+                    name={name}
+                    className={cn("border-2 border-ink bg-paper text-ink", index > 0 && "-ml-2")}
+                  />
+                ))}
+                <span className="ml-3 text-sm font-medium">{item.going.length} going</span>
+              </div>
+            ),
+          }))}
         />
       </div>
     </motion.div>
@@ -222,7 +240,7 @@ function Leaderboard() {
             <span className="w-4 tabular-nums text-paper/40">{index + 1}</span>
             <span className={cn("flex-1 font-medium", pilot.name === "You" && "text-paper/70")}>{pilot.name}</span>
             <span className="text-paper/70">
-              <Counter value={pilot.hours + (pilot.flying ? tick * 0.1 : 0)} decimals={1} /> h
+              <Counter value={pilot.hours + (pilot.flying === true ? tick * 0.1 : 0)} decimals={1} /> h
             </span>
           </li>
         ))}
@@ -261,7 +279,7 @@ function ClubChat() {
   );
 }
 
-export function Community() {
+export function Community(): ReactElement {
   return (
     <section
       id="community"

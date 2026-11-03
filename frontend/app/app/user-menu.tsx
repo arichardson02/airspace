@@ -1,23 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export function UserMenu({ name, email }: { name: string; email: string }) {
+export function UserMenu({ name, email }: { name: string; email: string }): ReactElement {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
 
   // Closes on a click anywhere else or on Escape.
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const close = (event: MouseEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !menu.current?.contains(event.target as Node)) {
+      const inside = event.target instanceof Node && menu.current?.contains(event.target) === true;
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : !inside) {
         setOpen(false);
       }
     };
@@ -29,7 +30,7 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
     };
   }, [open]);
 
-  async function signOut() {
+  async function signOut(): Promise<void> {
     await authClient.signOut();
     router.replace("/");
     router.refresh();
@@ -39,7 +40,9 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
     <div ref={menu} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setOpen((value) => !value);
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         className="flex items-center gap-2.5 rounded-full py-1 pr-3 pl-1 text-[13px] font-medium transition-colors hover:bg-paper/8"
@@ -68,7 +71,9 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
             <button
               type="button"
               role="menuitem"
-              onClick={signOut}
+              onClick={() => {
+                void signOut();
+              }}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-paper/75 transition-colors hover:bg-paper/8 hover:text-paper"
             >
               <LogOut className="size-4" />

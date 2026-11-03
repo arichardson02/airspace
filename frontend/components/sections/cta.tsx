@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { motion, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/button";
@@ -33,7 +34,7 @@ function Horizon() {
   );
 }
 
-export function Cta() {
+export function Cta(): ReactElement {
   return (
     <section id="download" aria-labelledby="download-title" className="overflow-hidden bg-ink text-paper">
       {/* The group needs a box of its own to measure, so it is the section's whole inside. */}

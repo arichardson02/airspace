@@ -1,19 +1,20 @@
-import nodeDataChannel, { type DataChannel, type DescriptionType, type PeerConnection } from "node-datachannel";
-import type { ClientSignalingMessage, GroupPeer, ServerSignalingMessage } from "@fs-career/contracts";
+import { cleanup, PeerConnection, type DataChannel, type DescriptionType } from "node-datachannel";
+import type { ClientSignalingMessage, CoopMessage, GroupPeer } from "@fs-career/contracts";
+import { parseCoopMessage, parseServerMessage } from "./messages.js";
 
 const ICE_SERVERS = ["stun:stun.l.google.com:19302"];
 
 export interface GroupHandlers {
   onPeerConnected(peer: GroupPeer, joinedBeforeUs: boolean): void;
   onPeerLeft(pilotId: string): void;
-  onMessage(pilotId: string, message: unknown): void;
+  onMessage(pilotId: string, message: CoopMessage): void;
   /** The signaling server dropped us, e.g. because the session ended or the pilot joined elsewhere. */
   onClosed(reason: string): void;
 }
 
 export interface GroupSession {
   /** `fast` sends unordered and never resends, for state that's replaced every frame anyway. */
-  broadcast(message: unknown, options?: { fast?: boolean }): void;
+  broadcast(message: CoopMessage, options?: { fast?: boolean }): void;
   leave(): void;
 }
 
@@ -28,40 +29,41 @@ export async function joinGroup(
   self: GroupPeer,
   handlers: GroupHandlers,
 ): Promise<GroupSession> {
-  // Node's WebSocket (undici) accepts headers, unlike the browser's, so the upgrade request carries the
-  // token. @types/node only declares the protocols form of this argument.
-  const init = { headers: { authorization: `Bearer ${token}` } };
-  const socket = new WebSocket(signalingUrl, init as unknown as ConstructorParameters<typeof WebSocket>[1]);
+  // Node's WebSocket (undici) takes headers, unlike the browser's, so the upgrade request carries the token.
+  const socket = new WebSocket(signalingUrl, { headers: { authorization: `Bearer ${token}` } });
   const connections = new Map<string, PeerConnection>();
   const channels = new Map<string, DataChannel>();
   const fastChannels = new Map<string, DataChannel>();
 
-  const send = (message: ClientSignalingMessage) => socket.send(JSON.stringify(message));
+  const send = (message: ClientSignalingMessage) => {
+    socket.send(JSON.stringify(message));
+  };
 
   const connect = (peer: GroupPeer, initiator: boolean) => {
-    const connection = new nodeDataChannel.PeerConnection(self.pilotId, { iceServers: ICE_SERVERS });
+    const connection = new PeerConnection(self.pilotId, { iceServers: ICE_SERVERS });
     connections.set(peer.pilotId, connection);
-    connection.onLocalDescription((sdp, type) => send({ type: "signal", to: peer.pilotId, signal: { sdp, type } }));
-    connection.onLocalCandidate((candidate, mid) =>
-      send({ type: "signal", to: peer.pilotId, signal: { candidate, mid } }),
-    );
+    connection.onLocalDescription((sdp, type) => {
+      send({ type: "signal", to: peer.pilotId, signal: { sdp, type } });
+    });
+    connection.onLocalCandidate((candidate, mid) => {
+      send({ type: "signal", to: peer.pilotId, signal: { candidate, mid } });
+    });
 
     const attach = (channel: DataChannel) => {
       (channel.getLabel() === "fast" ? fastChannels : channels).set(peer.pilotId, channel);
-      // Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
-      channel.onMessage((message) =>
-        handlers.onMessage(
-          peer.pilotId,
-          JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message)),
-        ),
-      );
+      channel.onMessage((data) => {
+        const message = parseCoopMessage(isText(data) ? data : new TextDecoder().decode(data));
+        if (message !== undefined) handlers.onMessage(peer.pilotId, message);
+      });
     };
 
     // The newcomer opens the channels to every existing member, so two peers never both send an offer.
     // "data" is reliable and ordered, so nothing sent is lost or reordered.
     if (initiator) {
       const channel = connection.createDataChannel("data");
-      channel.onOpen(() => handlers.onPeerConnected(peer, true));
+      channel.onOpen(() => {
+        handlers.onPeerConnected(peer, true);
+      });
       attach(channel);
       attach(connection.createDataChannel("fast", { unordered: true, maxRetransmits: 0 }));
     } else {
@@ -81,7 +83,8 @@ export async function joinGroup(
   };
 
   socket.addEventListener("message", (event) => {
-    const message = JSON.parse(String(event.data)) as ServerSignalingMessage;
+    const message = parseServerMessage(String(event.data));
+    if (message === undefined) return;
 
     switch (message.type) {
       case "peers":
@@ -97,7 +100,9 @@ export async function joinGroup(
         const connection = connections.get(message.from);
         if (!connection) break;
         if ("sdp" in message.signal) {
-          connection.setRemoteDescription(message.signal.sdp, message.signal.type as DescriptionType);
+          if (isDescriptionType(message.signal.type)) {
+            connection.setRemoteDescription(message.signal.sdp, message.signal.type);
+          }
         } else {
           connection.addRemoteCandidate(message.signal.candidate, message.signal.mid);
         }
@@ -109,7 +114,13 @@ export async function joinGroup(
   let leaving = false;
   const opened = new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", () => reject(new Error("Couldn't reach the co-op server")), { once: true });
+    socket.addEventListener(
+      "error",
+      () => {
+        reject(new Error("Couldn't reach the co-op server"));
+      },
+      { once: true },
+    );
   });
 
   socket.addEventListener("close", (event) => {
@@ -128,7 +139,7 @@ export async function joinGroup(
   return {
     broadcast(message, options) {
       const data = JSON.stringify(message);
-      for (const channel of (options?.fast ? fastChannels : channels).values()) {
+      for (const channel of (options?.fast === true ? fastChannels : channels).values()) {
         if (channel.isOpen()) channel.sendMessage(data);
       }
     },
@@ -136,7 +147,25 @@ export async function joinGroup(
       leaving = true;
       for (const pilotId of connections.keys()) disconnect(pilotId);
       socket.close();
-      nodeDataChannel.cleanup();
+      cleanup();
     },
   };
+}
+
+// Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
+function isText(data: string | Buffer | ArrayBuffer): data is string {
+  return typeof data === "string";
+}
+
+function isDescriptionType(type: string): type is DescriptionType {
+  switch (type) {
+    case "unspec":
+    case "offer":
+    case "answer":
+    case "pranswer":
+    case "rollback":
+      return true;
+    default:
+      return false;
+  }
 }

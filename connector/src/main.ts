@@ -14,12 +14,16 @@ const { connector, status } = createConnector({
   },
 });
 
-const exit = (code: number) => void connector.stop().then(() => process.exit(code));
+const exit = (code: number) => {
+  void connector.stop().then(() => process.exit(code));
+};
 
 // There's no "Get a new code" button in a terminal; restarting is the retry.
 status.subscribe(({ account }) => {
   if (account.state === "error") exit(1);
 });
-process.on("SIGINT", () => exit(0));
+process.on("SIGINT", () => {
+  exit(0);
+});
 
 connector.start();

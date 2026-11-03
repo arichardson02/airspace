@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "./cn";
 
@@ -52,13 +52,13 @@ export function ActionButton({
   type = "button",
   disabled,
   onClick,
-}: ActionButtonProps) {
+}: ActionButtonProps): ReactElement {
   return (
     <motion.button
       type={type}
       disabled={disabled}
       onClick={onClick}
-      {...(disabled ? {} : press)}
+      {...(disabled === true ? {} : press)}
       className={buttonClass(variant, size, cn("disabled:cursor-not-allowed disabled:opacity-50", className))}
     >
       {children}

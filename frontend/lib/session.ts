@@ -9,7 +9,27 @@ export interface User {
   email: string;
 }
 
+interface Session {
+  user: User;
+}
+
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
+
+/** The backend's get-session body when the cookie names a live session; it sends null when it doesn't. */
+function isSession(body: unknown): body is Session {
+  if (typeof body !== "object" || body === null || !("user" in body)) return false;
+  const { user } = body;
+  return (
+    typeof user === "object" &&
+    user !== null &&
+    "id" in user &&
+    typeof user.id === "string" &&
+    "name" in user &&
+    typeof user.name === "string" &&
+    "email" in user &&
+    typeof user.email === "string"
+  );
+}
 
 /**
  * The signed-in user, checked with the backend once per request. It reads the request's
@@ -22,8 +42,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   });
   if (!response.ok) return null;
 
-  const session = (await response.json()) as { user: User } | null;
-  return session && { id: session.user.id, name: session.user.name, email: session.user.email };
+  const body: unknown = await response.json();
+  if (!isSession(body)) return null;
+  return { id: body.user.id, name: body.user.name, email: body.user.email };
 });
 
 /** Like getCurrentUser, but sends visitors who aren't signed in to /login, then back to `returnTo`. */

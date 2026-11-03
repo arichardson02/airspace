@@ -25,4 +25,10 @@ export interface IngestHandler<T extends ConnectorMessageType = ConnectorMessage
   handle(messages: MessageOf<T>[], context: IngestContext): Promise<void>;
 }
 
-export type AnyIngestHandler = { [T in ConnectorMessageType]: IngestHandler<T> }[ConnectorMessageType];
+/**
+ * The handler of message type T. Written as a lookup so a generic function taking it accepts any handler
+ * and still sees `handle` as taking `MessageOf<T>`, which `IngestHandler<T>` with a union T doesn't allow.
+ */
+export type IngestHandlerOf<T extends ConnectorMessageType> = { [K in ConnectorMessageType]: IngestHandler<K> }[T];
+
+export type AnyIngestHandler = IngestHandlerOf<ConnectorMessageType>;

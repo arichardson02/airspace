@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type ReactElement, type SubmitEvent } from "react";
 import { ArrowRight, Check, ShieldAlert } from "lucide-react";
 import { ActionButton } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
@@ -13,19 +13,19 @@ const format = (code: string) => (code.length === 8 ? `${code.slice(0, 4)}-${cod
 
 type Step = "enter" | "confirm" | "approved" | "denied";
 
-export function DeviceApproval({ email, initialCode }: { email: string; initialCode: string }) {
+export function DeviceApproval({ email, initialCode }: { email: string; initialCode: string }): ReactElement {
   const [code, setCode] = useState(normalize(initialCode));
-  const [step, setStep] = useState<Step>(initialCode ? "confirm" : "enter");
+  const [step, setStep] = useState<Step>(initialCode === "" ? "enter" : "confirm");
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
-  function enter(event: FormEvent<HTMLFormElement>) {
+  function enter(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
     setError(undefined);
     setStep("confirm");
   }
 
-  async function decide(approve: boolean) {
+  async function decide(approve: boolean): Promise<void> {
     setPending(true);
     setError(undefined);
 
@@ -82,10 +82,12 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
             spellCheck={false}
             placeholder="ABCD-EFGH"
             value={format(code)}
-            onChange={(event) => setCode(normalize(event.target.value).slice(0, 8))}
+            onChange={(event) => {
+              setCode(normalize(event.target.value).slice(0, 8));
+            }}
             className="text-center font-mono text-lg tracking-[0.2em] uppercase"
           />
-          {error && <FormMessage>{error}</FormMessage>}
+          {error !== undefined && <FormMessage>{error}</FormMessage>}
           <ActionButton type="submit" variant="paper" disabled={code.length < 8} className="mt-1 w-full">
             Continue
             <ArrowRight className="size-4" />
@@ -115,17 +117,31 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
         Only approve a code you just started on your own computer. Never approve a code someone sent you.
       </p>
 
-      {error && (
+      {error !== undefined && (
         <div className="mt-4">
           <FormMessage>{error}</FormMessage>
         </div>
       )}
 
       <div className="mt-6 flex gap-3">
-        <ActionButton variant="ghost" disabled={pending} onClick={() => decide(false)} className="flex-1">
+        <ActionButton
+          variant="ghost"
+          disabled={pending}
+          onClick={() => {
+            void decide(false);
+          }}
+          className="flex-1"
+        >
           Deny
         </ActionButton>
-        <ActionButton variant="paper" disabled={pending} onClick={() => decide(true)} className="flex-1">
+        <ActionButton
+          variant="paper"
+          disabled={pending}
+          onClick={() => {
+            void decide(true);
+          }}
+          className="flex-1"
+        >
           {pending ? "Approving…" : "Approve"}
         </ActionButton>
       </div>

@@ -45,7 +45,7 @@ export interface SignedIn {
  */
 export async function ensureSignedIn(backendUrl: string, options: SignInOptions): Promise<SignedIn> {
   const saved = await loadToken();
-  if (saved) {
+  if (saved !== undefined) {
     const pilot = await getPilot(backendUrl, saved, options.signal);
     if (pilot) return { token: saved, pilot };
     console.log("Your saved sign-in has expired.");
@@ -73,19 +73,14 @@ async function getPilot(backendUrl: string, token: string, signal?: AbortSignal)
   if (response.status === 401) return undefined;
   if (!response.ok) throw new Error(`Checking the sign-in failed: HTTP ${response.status}`);
 
-  const session = (await response.json()) as { user: Pilot } | null;
-  return session ? { id: session.user.id, name: session.user.name, email: session.user.email } : undefined;
+  const session: unknown = await response.json();
+  if (session === null) return undefined;
+  if (!isSession(session)) throw new Error("Checking the sign-in failed: the backend sent an unexpected response");
+  return { id: session.user.id, name: session.user.name, email: session.user.email };
 }
 
 async function signInWithDeviceCode(backendUrl: string, { onCode, signal }: SignInOptions): Promise<string> {
-  const code = await post<{
-    device_code: string;
-    user_code: string;
-    verification_uri: string;
-    verification_uri_complete: string;
-    expires_in: number;
-    interval: number;
-  }>(`${backendUrl}/auth/device/code`, { client_id: CLIENT_ID }, signal);
+  const code = await post(`${backendUrl}/auth/device/code`, { client_id: CLIENT_ID }, isDeviceAuthorization, signal);
   if (!code.ok) throw new Error(`Couldn't start sign-in: ${code.body.error_description ?? code.status}`);
 
   const { device_code, user_code, verification_uri_complete, expires_in } = code.body;
@@ -95,11 +90,14 @@ async function signInWithDeviceCode(backendUrl: string, { onCode, signal }: Sign
   const expiresAt = Date.now() + expires_in * 1000;
 
   while (Date.now() < expiresAt) {
+    // oxlint-disable-next-line no-await-in-loop -- RFC 8628 polling: one request per interval, never in parallel
     await sleep(intervalMs, signal);
 
-    const token = await post<{ access_token: string }>(
+    // oxlint-disable-next-line no-await-in-loop -- as above
+    const token = await post(
       `${backendUrl}/auth/device/token`,
       { grant_type: DEVICE_GRANT, device_code, client_id: CLIENT_ID },
+      isDeviceToken,
       signal,
     );
     if (token.ok) return token.body.access_token;
@@ -114,6 +112,7 @@ async function signInWithDeviceCode(backendUrl: string, { onCode, signal }: Sign
         throw new DeviceCodeError("Sign-in was denied on the website");
       case "expired_token":
         throw new DeviceCodeError("The sign-in code expired");
+      case undefined:
       default:
         throw new Error(`Sign-in failed: ${token.body.error_description ?? token.body.error ?? token.status}`);
     }
@@ -137,11 +136,33 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+/** The fields of the device sign-in requests (RFC 8628). */
+interface OAuthRequest {
+  client_id: string;
+  grant_type?: string;
+  device_code?: string;
+}
+
 type OAuthError = { error?: string; error_description?: string };
 
+/** The backend's answer to a device-code request. */
+interface DeviceAuthorization {
+  device_code: string;
+  user_code: string;
+  verification_uri_complete: string;
+  expires_in: number;
+  interval: number;
+}
+
+interface DeviceToken {
+  access_token: string;
+}
+
+/** Posts an OAuth request. `isBody` checks a successful response; a failed one carries an OAuth error. */
 async function post<T>(
   url: string,
-  body: object,
+  body: OAuthRequest,
+  isBody: (json: unknown) => json is T,
   signal?: AbortSignal,
 ): Promise<{ ok: true; status: number; body: T } | { ok: false; status: number; body: OAuthError }> {
   const response = await fetch(url, {
@@ -150,10 +171,10 @@ async function post<T>(
     body: JSON.stringify(body),
     signal,
   });
-  const json = (await response.json().catch(() => ({}))) as T & OAuthError;
-  return response.ok
-    ? { ok: true, status: response.status, body: json }
-    : { ok: false, status: response.status, body: json };
+  const json: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) return { ok: false, status: response.status, body: isOAuthError(json) ? json : {} };
+  if (!isBody(json)) throw new Error("Sign-in failed: the backend sent an unexpected response");
+  return { ok: true, status: response.status, body: json };
 }
 
 export function openBrowser(url: string): void {
@@ -166,8 +187,9 @@ export function openBrowser(url: string): void {
 
 async function loadToken(): Promise<string | undefined> {
   try {
-    const { token } = JSON.parse(await readFile(credentialsFile, "utf8")) as { token?: string };
-    return token;
+    const saved: unknown = JSON.parse(await readFile(credentialsFile, "utf8"));
+    // An empty token is no sign-in either.
+    return isCredentials(saved) && saved.token !== "" ? saved.token : undefined;
   } catch {
     return undefined;
   }
@@ -175,5 +197,63 @@ async function loadToken(): Promise<string | undefined> {
 
 async function saveToken(token: string): Promise<void> {
   await mkdir(dirname(credentialsFile), { recursive: true });
-  await writeFile(credentialsFile, JSON.stringify({ token }), { mode: 0o600 });
+  await writeFile(credentialsFile, JSON.stringify({ token } satisfies Credentials), { mode: 0o600 });
+}
+
+/** What saveToken writes. */
+interface Credentials {
+  token: string;
+}
+
+// Everything below checks JSON from the backend or the credentials file before it's used.
+
+function isCredentials(json: unknown): json is Credentials {
+  return typeof json === "object" && json !== null && "token" in json && typeof json.token === "string";
+}
+
+function isSession(json: unknown): json is { user: Pilot } {
+  return typeof json === "object" && json !== null && "user" in json && isPilot(json.user);
+}
+
+function isPilot(json: unknown): json is Pilot {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    "id" in json &&
+    typeof json.id === "string" &&
+    "name" in json &&
+    typeof json.name === "string" &&
+    "email" in json &&
+    typeof json.email === "string"
+  );
+}
+
+function isOAuthError(json: unknown): json is OAuthError {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    (!("error" in json) || typeof json.error === "string") &&
+    (!("error_description" in json) || typeof json.error_description === "string")
+  );
+}
+
+function isDeviceAuthorization(json: unknown): json is DeviceAuthorization {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    "device_code" in json &&
+    typeof json.device_code === "string" &&
+    "user_code" in json &&
+    typeof json.user_code === "string" &&
+    "verification_uri_complete" in json &&
+    typeof json.verification_uri_complete === "string" &&
+    "expires_in" in json &&
+    typeof json.expires_in === "number" &&
+    "interval" in json &&
+    typeof json.interval === "number"
+  );
+}
+
+function isDeviceToken(json: unknown): json is DeviceToken {
+  return typeof json === "object" && json !== null && "access_token" in json && typeof json.access_token === "string";
 }

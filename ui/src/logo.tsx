@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactElement, SVGProps } from "react";
 import { cn } from "./cn";
 import { markPath } from "./mark";
 
@@ -12,7 +12,7 @@ interface LogoProps extends SVGProps<SVGSVGElement> {
 }
 
 // Drawn in currentColor, so it takes the text colour of wherever it sits.
-export function Logo({ variant = "lockup", className, ...props }: LogoProps) {
+export function Logo({ variant = "lockup", className, ...props }: LogoProps): ReactElement {
   const lockup = variant === "lockup";
 
   return (

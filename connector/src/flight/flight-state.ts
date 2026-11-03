@@ -37,6 +37,35 @@ const FLIGHT_SIMVARS: [key: keyof FlightState, name: string, unit: string][] = [
 
 export const FLIGHT_KEYS = FLIGHT_SIMVARS.map(([key]) => key);
 
+// Gives each new state every key up front, so it can be filled in by key.
+const EMPTY_FLIGHT_STATE: FlightState = {
+  latitude: 0,
+  longitude: 0,
+  altitude: 0,
+  pitch: 0,
+  bank: 0,
+  heading: 0,
+  headingGyro: 0,
+  gForce: 0,
+  verticalSpeed: 0,
+  velocityBodyY: 0,
+  velocityBodyZ: 0,
+  velocityWorldX: 0,
+  velocityWorldZ: 0,
+  elevator: 0,
+  aileron: 0,
+  rudder: 0,
+  throttle1: 0,
+  throttle2: 0,
+};
+
+/** Builds a state from `read`, which is called for each value in the order SimConnect sends them. */
+export function buildFlightState(read: (key: keyof FlightState) => number): FlightState {
+  const state = { ...EMPTY_FLIGHT_STATE };
+  for (const [key] of FLIGHT_SIMVARS) state[key] = read(key);
+  return state;
+}
+
 export interface FlightStateLink {
   /** Writes a state into the user aircraft. */
   write: (state: FlightState) => void;
@@ -56,9 +85,7 @@ export function connectFlightState(
   handle.on("simObjectData", (sample) => {
     if (sample.requestID !== FLIGHT_REQUEST) return;
 
-    const state = {} as FlightState;
-    for (const [key] of FLIGHT_SIMVARS) state[key] = sample.data.readFloat64();
-    onFrame(state);
+    onFrame(buildFlightState(() => sample.data.readFloat64()));
   });
 
   const buffer = new RawBuffer(FLIGHT_SIMVARS.length * 8);

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -7,7 +7,7 @@ import { UserMenu } from "./user-menu";
 
 // The signed-in app. proxy.ts turns away visitors with no session cookie; each page checks the
 // session itself with requireUser().
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default function AppLayout({ children }: { children: ReactNode }): ReactElement {
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-ink text-paper">
       <header className="sticky top-0 z-50 border-b border-paper/8 bg-ink/85 backdrop-blur-xl">

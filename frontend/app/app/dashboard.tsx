@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Briefcase, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ function Panel({ children, className }: { children: ReactNode; className?: strin
   );
 }
 
-export function Dashboard({ name }: { name: string }) {
+export function Dashboard({ name }: { name: string }): ReactElement {
   return (
     <div className="mx-auto w-full max-w-7xl px-5 py-12 sm:py-16">
       <motion.h1 {...rise(0)} className="display text-4xl sm:text-5xl md:text-6xl">

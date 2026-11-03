@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, Copy, RotateCw } from "lucide-react";
 import type { AccountStatus } from "@fs-career/contracts";
@@ -11,7 +11,7 @@ import { formatCode, send } from "../lib/connector";
 import { rise } from "../lib/motion";
 
 // Shown until the pilot is signed in: the app gets a code, and the pilot approves it on airspace.club.
-export function SignIn({ account }: { account: AccountStatus }) {
+export function SignIn({ account }: { account: AccountStatus }): ReactElement {
   return (
     <div className="relative grid flex-1 place-items-center overflow-hidden px-6">
       {/* The website's sign-in pages sit on the route map; here a soft glow stands in for it. */}
@@ -42,13 +42,15 @@ export function SignIn({ account }: { account: AccountStatus }) {
   );
 }
 
-function Code({ userCode }: { userCode: string }) {
+function Code({ userCode }: { userCode: string }): ReactElement {
   const [copied, setCopied] = useState(false);
 
-  async function copy() {
+  async function copy(): Promise<void> {
     await navigator.clipboard.writeText(formatCode(userCode));
     setCopied(true);
-    setTimeout(() => setCopied(false), 2_000);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2_000);
   }
 
   return (
@@ -61,11 +63,23 @@ function Code({ userCode }: { userCode: string }) {
         <p className="mt-1.5 font-mono text-2xl font-medium tracking-[0.2em] select-text">{formatCode(userCode)}</p>
       </div>
       <div className="mt-5 flex gap-3">
-        <ActionButton variant="ghost" onClick={copy} className="flex-1">
+        <ActionButton
+          variant="ghost"
+          onClick={() => {
+            void copy();
+          }}
+          className="flex-1"
+        >
           {copied ? <Check className="size-4" strokeWidth={3} /> : <Copy className="size-4" />}
           {copied ? "Copied" : "Copy code"}
         </ActionButton>
-        <ActionButton variant="paper" onClick={() => send({ type: "open-sign-in" })} className="flex-1">
+        <ActionButton
+          variant="paper"
+          onClick={() => {
+            send({ type: "open-sign-in" });
+          }}
+          className="flex-1"
+        >
           Open browser
           <ArrowUpRight className="size-4" />
         </ActionButton>
@@ -78,11 +92,17 @@ function Code({ userCode }: { userCode: string }) {
   );
 }
 
-function Failed({ message }: { message: string }) {
+function Failed({ message }: { message: string }): ReactElement {
   return (
     <div className="flex flex-col gap-5">
       <FormMessage>{message}</FormMessage>
-      <ActionButton variant="paper" onClick={() => send({ type: "retry-sign-in" })} className="w-full">
+      <ActionButton
+        variant="paper"
+        onClick={() => {
+          send({ type: "retry-sign-in" });
+        }}
+        className="w-full"
+      >
         <RotateCw className="size-4" />
         Get a new code
       </ActionButton>

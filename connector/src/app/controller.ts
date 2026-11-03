@@ -1,15 +1,14 @@
 import type { ConnectorCommand } from "@fs-career/contracts";
 import type { DeviceCode, SignedIn } from "../auth/sign-in.js";
 import type { BackendClient } from "../backend-client.js";
-import type { Coop, CoopJoinOptions } from "../group/group-flight.js";
+import type { Coop } from "../group/group-flight.js";
 import type { StatusStore } from "./status.js";
 
-export type CoopJoin = CoopJoinOptions;
 type Backend = Pick<BackendClient, "start" | "stop" | "send">;
 
 /** The parts of a SimConnect connection the controller uses. */
 export interface SimHandle {
-  on(event: "quit" | "close", listener: () => void): unknown;
+  on(event: "quit" | "close", listener: () => void): void;
   close(): void;
 }
 
@@ -56,11 +55,13 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.status = deps.status;
   }
 
+  // fallow-ignore-next-line unused-class-member -- called by main.ts and the desktop app on the object createConnector() returns
   start(): void {
     this.signIn();
-    void this.connectSim();
+    this.connectSim();
   }
 
+  // fallow-ignore-next-line unused-class-member -- called by main.ts and the desktop app on the object createConnector() returns
   async stop(): Promise<void> {
     this.stopped = true;
     this.signInAbort?.abort();
@@ -69,10 +70,13 @@ export class Connector<H extends SimHandle = SimHandle> {
     await this.backend?.stop();
   }
 
+  // fallow-ignore-next-line unused-class-member -- the desktop app passes window commands here, via createConnector()
   handle(command: ConnectorCommand): void {
     switch (command.type) {
       case "open-sign-in":
-        if (this.verificationUrl) this.deps.openBrowser(this.verificationUrl);
+        if (this.verificationUrl !== undefined && this.verificationUrl !== "") {
+          this.deps.openBrowser(this.verificationUrl);
+        }
         break;
       case "retry-sign-in":
         if (!this.signedIn) this.signIn();
@@ -96,22 +100,23 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.verificationUrl = undefined;
     this.status.update({ account: { state: "checking" } });
 
-    this.deps
-      .signIn(abort.signal, (code) => {
-        this.verificationUrl = code.verificationUrl;
-        this.status.update({ account: { state: "signing-in", ...code } });
-      })
-      .then((signedIn) => {
+    const signingIn = this.deps.signIn(abort.signal, (code) => {
+      this.verificationUrl = code.verificationUrl;
+      this.status.update({ account: { state: "signing-in", ...code } });
+    });
+    void (async () => {
+      try {
+        const signedIn = await signingIn;
         if (abort.signal.aborted) return;
         this.signInAbort = undefined;
         this.onSignedIn(signedIn);
-      })
-      .catch((err: unknown) => {
+      } catch (err) {
         if (abort.signal.aborted) return;
         this.signInAbort = undefined;
         console.error("Sign-in failed:", err instanceof Error ? err.message : err);
         this.status.update({ account: { state: "error", message: signInError(err) } });
-      });
+      }
+    })();
   }
 
   private onSignedIn(signedIn: SignedIn): void {
@@ -140,33 +145,35 @@ export class Connector<H extends SimHandle = SimHandle> {
     if (!this.stopped) this.signIn();
   }
 
-  private async connectSim(): Promise<void> {
-    let announced = false;
-    while (!this.stopped) {
-      try {
-        const connection = await this.deps.openSim();
-        if (this.stopped) {
-          connection.handle.close();
-          return;
-        }
-        this.onSimConnected(connection);
+  /** Tries to reach the simulator every `simRetryMs` until it's running. `announced` once the wait was logged. */
+  private connectSim(announced = false): void {
+    if (!this.stopped) void this.attemptSim(announced);
+  }
+
+  private async attemptSim(announced: boolean): Promise<void> {
+    try {
+      const connection = await this.deps.openSim();
+      if (this.stopped) {
+        connection.handle.close();
         return;
-      } catch (err) {
-        if (!announced) {
-          announced = true;
-          const code = (err as NodeJS.ErrnoException | undefined)?.code;
-          console.log(
-            code === "ECONNREFUSED" ? "Waiting for the simulator..." : `Waiting for the simulator (${String(err)})`,
-          );
-        }
-        await new Promise((resolve) => setTimeout(resolve, this.deps.simRetryMs));
       }
+      this.onSimConnected(connection);
+    } catch (err) {
+      if (!announced) {
+        const refused = hasErrorCode(err) && err.code === "ECONNREFUSED";
+        console.log(refused ? "Waiting for the simulator..." : `Waiting for the simulator (${String(err)})`);
+      }
+      setTimeout(() => {
+        this.connectSim(true);
+      }, this.deps.simRetryMs);
     }
   }
 
   private onSimConnected(connection: SimConnection<H>): void {
     this.sim = { connection };
-    const disconnected = () => this.onSimDisconnected(connection);
+    const disconnected = () => {
+      this.onSimDisconnected(connection);
+    };
     connection.handle.on("quit", disconnected);
     connection.handle.on("close", disconnected);
 
@@ -186,19 +193,23 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.sim = undefined;
     this.leaveGroup(this.group ? "The simulator closed" : undefined);
     this.status.update({ sim: { state: "waiting" } });
-    void this.connectSim();
+    this.connectSim();
   }
 
   private sendHello(connection: SimConnection<H>): void {
-    this.backend?.send("connector.hello", {
-      connectorVersion: this.status.get().version,
-      sim: { name: connection.name, versionMajor: connection.versionMajor, versionMinor: connection.versionMinor },
+    this.backend?.send({
+      type: "connector.hello",
+      payload: {
+        connectorVersion: this.status.get().version,
+        sim: { name: connection.name, versionMajor: connection.versionMajor, versionMinor: connection.versionMinor },
+      },
     });
   }
 
   private autoJoin(): void {
-    if (this.deps.autoJoinGroupCode && this.status.get().coop.state === "off") {
-      this.joinGroup(this.deps.autoJoinGroupCode);
+    const groupCode = this.deps.autoJoinGroupCode;
+    if (groupCode !== undefined && groupCode !== "" && this.status.get().coop.state === "off") {
+      this.joinGroup(groupCode);
     }
   }
 
@@ -215,30 +226,31 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.status.update({ coop: { state: "joining", groupCode } });
     sim.coop ??= this.deps.createCoop(sim.connection.handle);
 
-    sim.coop
-      .join({
-        groupCode,
-        token: signedIn.token,
-        pilot: { pilotId: signedIn.pilot.id, name: signedIn.pilot.name },
-        onChange: (update) => {
-          if (current()) this.status.update({ coop: { state: "joined", groupCode, ...update } });
-        },
-        onEnded: (reason) => {
-          if (!current()) return;
-          this.group = undefined;
-          this.status.update({ coop: { state: "off", error: reason } });
-        },
-      })
-      .then((group) => {
+    const joining = sim.coop.join({
+      groupCode,
+      token: signedIn.token,
+      pilot: { pilotId: signedIn.pilot.id, name: signedIn.pilot.name },
+      onChange: (update) => {
+        if (current()) this.status.update({ coop: { state: "joined", groupCode, ...update } });
+      },
+      onEnded: (reason) => {
+        if (!current()) return;
+        this.group = undefined;
+        this.status.update({ coop: { state: "off", error: reason } });
+      },
+    });
+    void (async () => {
+      try {
+        const group = await joining;
         if (current()) this.group = group;
         else group.leave();
-      })
-      .catch((err: unknown) => {
+      } catch (err) {
         if (!current()) return;
         const message = `Couldn't join group ${groupCode}: ${err instanceof Error ? err.message : String(err)}`;
         console.error(message);
         this.status.update({ coop: { state: "off", error: message } });
-      });
+      }
+    })();
   }
 
   private leaveGroup(error?: string): void {
@@ -246,13 +258,18 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.group?.leave();
     this.group = undefined;
     if (this.status.get().coop.state !== "off") {
-      this.status.update({ coop: error ? { state: "off", error } : { state: "off" } });
+      this.status.update({ coop: error === undefined ? { state: "off" } : { state: "off", error } });
     }
   }
 }
 
-function signInError(err: unknown): string {
+function signInError(cause: unknown): string {
   // fetch rejects with a TypeError when the backend can't be reached at all.
-  if (err instanceof TypeError) return "Couldn't reach Airspace. Check your internet connection and try again.";
-  return err instanceof Error ? err.message : String(err);
+  if (cause instanceof TypeError) return "Couldn't reach Airspace. Check your internet connection and try again.";
+  return cause instanceof Error ? cause.message : String(cause);
+}
+
+/** Whether `err` carries a Node system error code, like the ECONNREFUSED of a simulator that isn't running. */
+function hasErrorCode(err: unknown): err is { code: unknown } {
+  return typeof err === "object" && err !== null && "code" in err;
 }

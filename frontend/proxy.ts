@@ -3,8 +3,9 @@ import { getSessionCookie } from "better-auth/cookies";
 
 // A quick redirect for visitors with no session cookie at all. It doesn't check the session;
 // the pages do that with the backend (lib/session.ts).
-export function proxy(request: NextRequest) {
-  if (getSessionCookie(request)) return NextResponse.next();
+export function proxy(request: NextRequest): NextResponse {
+  const cookie = getSessionCookie(request);
+  if (cookie !== null && cookie !== "") return NextResponse.next();
 
   const { pathname, search } = request.nextUrl;
   const login = new URL("/login", request.url);

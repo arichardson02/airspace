@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { motion } from "framer-motion";
 import { AppWindow } from "@/components/app-window";
 import { RollStack } from "@/components/roll-stack";
@@ -15,7 +15,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 // the right is a browser window showing the app: its address changes with the step and
 // the page inside rolls to that step's scene. Clicking a step jumps to it and stops the
 // timer. The whole thing builds with the scroll: heading, then each step, then the window.
-export function Tour() {
+export function Tour(): ReactElement {
   const tick = useTick(SCENE_MS);
   const [picked, setPicked] = useState<number | null>(null);
   const current = picked ?? tick % steps.length;
@@ -36,7 +36,9 @@ export function Tour() {
                   <li className="border-t border-paper/10 last:border-b">
                     <button
                       type="button"
-                      onClick={() => setPicked(index)}
+                      onClick={() => {
+                        setPicked(index);
+                      }}
                       className="relative block w-full py-5 text-left"
                     >
                       <div className="flex items-baseline gap-5">
@@ -86,10 +88,11 @@ export function Tour() {
                 axis="y"
                 current={current}
                 slideClassName="min-h-[460px] p-6 sm:p-8"
-                items={steps.map((step, index) => (
+                items={steps.map((step, index) => ({
+                  id: step.title,
                   // Remounting on activation restarts the scene from its first phase.
-                  <step.Scene key={String(index === current)} active={index === current} />
-                ))}
+                  content: <step.Scene key={String(index === current)} active={index === current} />,
+                }))}
               />
             </AppWindow>
           </Slide>

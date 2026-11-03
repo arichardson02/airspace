@@ -25,16 +25,20 @@ export function useConnector(): ConnectorStatus | undefined {
   useEffect(() => {
     const stop = bridge().onStatus(setStatus);
     // A status pushed while this was loading wins over the initial fetch.
-    void bridge()
-      .status()
-      .then((initial) => setStatus((current) => current ?? initial));
+    async function loadInitial(): Promise<void> {
+      const initial = await bridge().status();
+      setStatus((current) => current ?? initial);
+    }
+    void loadInitial();
     return stop;
   }, []);
 
   return status;
 }
 
-export const send = (command: ConnectorCommand) => bridge().send(command);
+export const send = (command: ConnectorCommand): void => {
+  bridge().send(command);
+};
 
 /** Shows device codes the way the website's approval page does, e.g. ABCD-2345. */
-export const formatCode = (code: string) => (code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code);
+export const formatCode = (code: string): string => (code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code);

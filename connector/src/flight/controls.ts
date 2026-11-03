@@ -3,8 +3,13 @@ import type { NotificationPriority, SimConnectConnection } from "node-simconnect
 const FIRST_CONTROL_EVENT = 20;
 const WATCH_GROUP = 20;
 const BLOCK_GROUP = 21;
-// node-simconnect declares NotificationPriority as a const enum, which has no runtime value under tsx.
+// node-simconnect declares NotificationPriority as a const enum, which has no runtime value under tsx, so its
+// numbers stand in for it.
+// SAFETY: 1 is NotificationPriority.HIGHEST.
+// oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- const enum with no runtime value; see above
 const PRIORITY_HIGHEST = 1 as NotificationPriority;
+// SAFETY: 10_000_000 is NotificationPriority.HIGHEST_MASKABLE.
+// oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- const enum with no runtime value; see above
 const PRIORITY_HIGHEST_MASKABLE = 10_000_000 as NotificationPriority;
 
 // Hardware stick/yoke/rudder axes report -16383..16383.

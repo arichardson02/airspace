@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactElement, SVGProps } from "react";
 
 // The A mark from Branding/logo/mark.svg as inline SVG, for places that animate it or
 // colour it with currentColor.
@@ -7,7 +7,7 @@ export const markPath =
 
 export const markViewBox = "0 0 114.1 100";
 
-export function Mark(props: SVGProps<SVGSVGElement>) {
+export function Mark(props: SVGProps<SVGSVGElement>): ReactElement {
   return (
     <svg viewBox={markViewBox} aria-hidden {...props}>
       <path d={markPath} fill="currentColor" fillRule="evenodd" />

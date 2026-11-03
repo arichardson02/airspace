@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import Link from "next/link";
 import { FlightMap } from "@/components/flight-map";
 import { Logo } from "@/components/logo";
 
 // Sign-in pages sit on the hero's ink and route map, so they read as the same place.
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default function AuthLayout({ children }: { children: ReactNode }): ReactElement {
   return (
     <div className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-ink text-paper">
       <div aria-hidden className="absolute inset-0 opacity-60">

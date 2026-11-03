@@ -1,11 +1,13 @@
 import { SnapshotInterpolation } from "@geckos.io/snapshot-interpolation";
 import { EventFlag, SimConnectConstants, type NotificationPriority, type SimConnectConnection } from "node-simconnect";
 import type { FlightState } from "@fs-career/contracts";
-import { FLIGHT_KEYS } from "./flight-state.js";
+import { buildFlightState, FLIGHT_KEYS } from "./flight-state.js";
 
 const FIRST_FREEZE_EVENT = 10;
 const FREEZE_EVENTS = ["FREEZE_LATITUDE_LONGITUDE_SET", "FREEZE_ALTITUDE_SET", "FREEZE_ATTITUDE_SET"];
-// node-simconnect declares NotificationPriority as a const enum, which has no runtime value under tsx.
+// SAFETY: 1 is NotificationPriority.HIGHEST. node-simconnect declares it as a const enum, which has no runtime
+// value under tsx, so the number stands in for it.
+// oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- const enum with no runtime value; see above
 const PRIORITY_HIGHEST = 1 as NotificationPriority;
 
 // Angles blend the short way around (359° → 1°). They're blended under one-letter keys because the library
@@ -15,8 +17,6 @@ const INTERPOLATED_KEYS = [
   ...FLIGHT_KEYS.filter((key) => !(key in ANGLE_KEYS)),
   ...Object.values(ANGLE_KEYS).map((key) => `${key}(deg)`),
 ].join(" ");
-
-type Blended = FlightState & Record<(typeof ANGLE_KEYS)[keyof typeof ANGLE_KEYS], number>;
 
 // When updates stop (a stutter on the flyer's sim or lost packets), the aircraft keeps moving the way the last two
 // states were going for up to this long, then holds until updates resume.
@@ -103,8 +103,16 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
       if (!interpolation) return;
       const snapshot = interpolation.calcInterpolation(INTERPOLATED_KEYS);
       if (snapshot) {
-        const blended = snapshot.state[0] as unknown as Blended;
-        write({ ...blended, pitch: blended.p, bank: blended.b, heading: blended.h, headingGyro: blended.g });
+        // Only numbers go into the snapshots, so every value comes back out as one.
+        const blended = snapshot.state[0];
+        const state = buildFlightState((key) => Number(blended[key]));
+        write({
+          ...state,
+          pitch: Number(blended.p),
+          bank: Number(blended.b),
+          heading: Number(blended.h),
+          headingGyro: Number(blended.g),
+        });
         return;
       }
 

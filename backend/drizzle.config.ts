@@ -12,6 +12,7 @@ export default defineConfig({
   schema: "./src/**/*.schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // generate doesn't connect, so it runs without one; the commands that do reject an empty url.
+    url: process.env.DATABASE_URL ?? "",
   },
 });

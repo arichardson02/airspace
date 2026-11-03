@@ -1,3 +1,4 @@
+// fallow-ignore-file unused-file -- position tracking is switched off until flight recording is built
 import { SimConnectConstants, SimConnectDataType, SimConnectPeriod, type SimConnectConnection } from "node-simconnect";
 import type { BackendClient } from "../backend-client.js";
 
@@ -55,17 +56,20 @@ export function trackPosition(handle: SimConnectConnection, backend: BackendClie
     if (sample.requestID !== POSITION_REQUEST) return;
 
     const data = sample.data;
-    backend.send("position", {
-      latitude: data.readFloat64(),
-      longitude: data.readFloat64(),
-      altitudeFt: data.readFloat64(),
-      altitudeAglFt: data.readFloat64(),
-      headingTrueDeg: data.readFloat64(),
-      groundSpeedKts: data.readFloat64(),
-      indicatedAirspeedKts: data.readFloat64(),
-      verticalSpeedFpm: data.readFloat64(),
-      onGround: data.readFloat64() !== 0,
-      fuelWeightLbs: data.readFloat64(),
+    backend.send({
+      type: "position",
+      payload: {
+        latitude: data.readFloat64(),
+        longitude: data.readFloat64(),
+        altitudeFt: data.readFloat64(),
+        altitudeAglFt: data.readFloat64(),
+        headingTrueDeg: data.readFloat64(),
+        groundSpeedKts: data.readFloat64(),
+        indicatedAirspeedKts: data.readFloat64(),
+        verticalSpeedFpm: data.readFloat64(),
+        onGround: data.readFloat64() !== 0,
+        fuelWeightLbs: data.readFloat64(),
+      },
     });
   });
 

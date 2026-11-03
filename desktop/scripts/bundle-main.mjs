@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
+import manifest from "../package.json" with { type: "json" };
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const addonName = "node_datachannel.node";
@@ -18,6 +19,8 @@ export const addonPath = createRequire(
 /**
  * node-datachannel finds its native addon relative to its own files, which a bundle moves. Load it from the
  * app's resources folder when packaged, or straight from node_modules in development.
+ *
+ * @satisfies {esbuild.Plugin}
  */
 const nativeAddon = {
   name: "native-addon",
@@ -39,12 +42,16 @@ const nativeAddon = {
   },
 };
 
-/** esbuild options for the main and preload bundles; `release` builds in the production settings. */
+/**
+ * esbuild options for the main and preload bundles; `release` builds in the production settings.
+ *
+ * @param {{ release: boolean }} options
+ * @returns {esbuild.BuildOptions}
+ */
 export function mainBuildOptions({ release }) {
   const define = {};
   if (release) {
-    const { version } = createRequire(import.meta.url)(join(root, "package.json"));
-    define["process.env.AIRSPACE_BUILD_VERSION"] = JSON.stringify(version);
+    define["process.env.AIRSPACE_BUILD_VERSION"] = JSON.stringify(manifest.version);
     define["process.env.AIRSPACE_BUILD_BACKEND_URL"] = JSON.stringify(
       process.env.RELEASE_BACKEND_URL ?? "https://airspace.club/api",
     );

@@ -10,7 +10,7 @@ export function usePhases(active: boolean, durations: readonly number[]): number
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) return undefined;
 
     let index = 0;
     let timer = 0;
@@ -23,7 +23,9 @@ export function usePhases(active: boolean, durations: readonly number[]): number
       }, durations[index]);
     };
     next();
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [active, durations]);
 
   return phase;

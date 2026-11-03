@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/button";
@@ -10,9 +11,9 @@ import { siteConfig } from "@/config/site";
 const ease = [0.22, 1, 0.36, 1] as const;
 const words = "Wherever You're Parked, There's a Job.".split(" ");
 
-export function Hero() {
+export function Hero(): ReactElement {
   // Everything waits for the intro curtain, unless there is no intro.
-  const start = useReducedMotion() ? 0 : INTRO_SECONDS - 0.4;
+  const start = useReducedMotion() === true ? 0 : INTRO_SECONDS - 0.4;
 
   const rise = (delay: number) => ({
     initial: { opacity: 0, y: 16 },
@@ -45,7 +46,7 @@ export function Hero() {
         >
           {words.map((word, index) => (
             <motion.span
-              key={index}
+              key={word}
               className="inline-block"
               initial={{ opacity: 0, y: "0.35em", filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactElement } from "react";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -10,7 +11,7 @@ interface LogoProps {
 }
 
 // The lockup's viewBox is 508 x 97, the mark's 114 x 100 (Branding/logo).
-export function Logo({ variant = "lockup", inverted, className }: LogoProps) {
+export function Logo({ variant = "lockup", inverted, className }: LogoProps): ReactElement {
   const lockup = variant === "lockup";
 
   return (
@@ -20,7 +21,7 @@ export function Logo({ variant = "lockup", inverted, className }: LogoProps) {
       width={lockup ? 508 : 114}
       height={lockup ? 97 : 100}
       priority
-      className={cn("h-6 w-auto", inverted && "invert", className)}
+      className={cn("h-6 w-auto", inverted === true && "invert", className)}
     />
   );
 }

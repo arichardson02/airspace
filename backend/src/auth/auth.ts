@@ -1,5 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { betterAuth } from "better-auth";
+import { betterAuth, type Auth as BetterAuth, type BetterAuthOptions } from "better-auth";
 import { bearer, deviceAuthorization } from "better-auth/plugins";
 import type { Database } from "../database/database.module.js";
 import { authSchema } from "./auth.schema.js";
@@ -17,10 +17,16 @@ export interface AuthConfig {
   sendEmail: SendEmail;
 }
 
-export function createAuth(db: Database, { baseURL, secret, sendEmail }: AuthConfig) {
+export function createAuth(db: Database, config: AuthConfig): Auth {
+  return betterAuth(authOptions(db, config));
+}
+
+// Kept apart from createAuth so Auth can be named from the options' inferred type, which carries the
+// plugins' endpoints into authService.api.
+function authOptions(db: Database, { baseURL, secret, sendEmail }: AuthConfig) {
   const { hostname } = new URL(baseURL);
 
-  return betterAuth({
+  return {
     baseURL,
     basePath: "/api/auth",
     secret,
@@ -68,7 +74,7 @@ export function createAuth(db: Database, { baseURL, secret, sendEmail }: AuthCon
         validateClient: (clientId) => clientId === CONNECTOR_CLIENT_ID,
       }),
     ],
-  });
+  } satisfies BetterAuthOptions;
 }
 
-export type Auth = ReturnType<typeof createAuth>;
+export type Auth = BetterAuth<ReturnType<typeof authOptions>>;

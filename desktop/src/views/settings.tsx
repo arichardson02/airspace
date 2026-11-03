@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import { LogOut } from "lucide-react";
 import type { Pilot } from "@fs-career/contracts";
@@ -6,7 +7,7 @@ import { Avatar, Card } from "../components/card";
 import { send } from "../lib/connector";
 import { rise } from "../lib/motion";
 
-export function Settings({ pilot, version }: { pilot: Pilot; version: string }) {
+export function Settings({ pilot, version }: { pilot: Pilot; version: string }): ReactElement {
   return (
     <div className="px-10 py-10">
       <motion.h1 {...rise(0)} className="display text-4xl">
@@ -27,7 +28,14 @@ export function Settings({ pilot, version }: { pilot: Pilot; version: string }) 
             <p className="mt-5 text-sm leading-relaxed text-paper/55">
               Signing out leaves any co-op group and forgets this computer. You'll get a new code to sign in again.
             </p>
-            <ActionButton variant="ghost" size="sm" onClick={() => send({ type: "sign-out" })} className="mt-5">
+            <ActionButton
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                send({ type: "sign-out" });
+              }}
+              className="mt-5"
+            >
               <LogOut className="size-4" />
               Sign out
             </ActionButton>

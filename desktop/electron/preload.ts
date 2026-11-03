@@ -5,13 +5,23 @@ import type { ConnectorCommand, ConnectorStatus } from "@fs-career/contracts";
 const airspace = {
   status: (): Promise<ConnectorStatus> => ipcRenderer.invoke("connector:status"),
   onStatus(listener: (status: ConnectorStatus) => void): () => void {
-    const handler = (_event: IpcRendererEvent, status: ConnectorStatus) => listener(status);
+    const handler = (_event: IpcRendererEvent, status: ConnectorStatus): void => {
+      listener(status);
+    };
     ipcRenderer.on("connector:status", handler);
-    return () => ipcRenderer.off("connector:status", handler);
+    return () => {
+      ipcRenderer.off("connector:status", handler);
+    };
   },
-  send: (command: ConnectorCommand) => ipcRenderer.send("connector:command", command),
-  minimize: () => ipcRenderer.send("window:minimize"),
-  close: () => ipcRenderer.send("window:close"),
+  send: (command: ConnectorCommand): void => {
+    ipcRenderer.send("connector:command", command);
+  },
+  minimize: (): void => {
+    ipcRenderer.send("window:minimize");
+  },
+  close: (): void => {
+    ipcRenderer.send("window:close");
+  },
 };
 
 export type AirspaceBridge = typeof airspace;
