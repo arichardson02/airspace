@@ -88,15 +88,17 @@ export function createFollower(
   let interpolation: SnapshotInterpolation | undefined;
   let previous: Received | undefined;
   let latest: Received | undefined;
-  let onGround = false;
+  // Undefined until the first state arrives: the aircraft isn't frozen before then, so a parked one stays on its
+  // wheels (its systems don't see it leave the ground) and a flying one carries on for those few frames.
+  let onGround: boolean | undefined;
 
   const follow = (state: FlightState) => {
-    const next = followsOnGround(onGround, state);
+    const next = followsOnGround(onGround === true, state);
     if (next !== onGround) {
       onGround = next;
-      setFrozen(true, !onGround);
+      setFrozen(true, !next);
     }
-    write(state, onGround);
+    write(state, next);
   };
 
   return {
@@ -104,11 +106,11 @@ export function createFollower(
       // A fresh buffer, so states from an earlier turn following aren't blended in.
       interpolation = new SnapshotInterpolation();
       previous = latest = undefined;
-      onGround = false;
-      setFrozen(true, true);
+      onGround = undefined;
     },
     stop() {
       interpolation = undefined;
+      onGround = undefined;
       setFrozen(false, false);
     },
     receive(time, state) {
