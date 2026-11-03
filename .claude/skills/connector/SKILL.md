@@ -17,7 +17,9 @@ It has no Electron imports of its own.
 - `group/` and `flight/`: shared-cockpit co-op over peer-to-peer WebRTC (`node-datachannel`). The pilot flying
   streams their aircraft's state every frame; the other pilot's aircraft is frozen and follows it. On the ground below 25 kt only its position is frozen and its altitude and attitude are left to the sim, so it stays on its wheels and its systems know it's on the ground (ground power, weight on wheels); faster, it follows exactly as in the air. Whoever moves
   their controls deliberately takes over, unless both are moving (dual input). `group/messages.ts` checks every
-  message from the co-op server and the other pilot before it's used.
+  message from the co-op server and the other pilot before it's used. A session lives on the direct link alone: the co-op server only introduces peers, so when
+  the connection to it drops the session keeps its peers and reconnects to it in the background. Peers send a
+  heartbeat every second, and one silent for 5 s is treated as lost.
 - SimConnect setup (data definitions, event mappings) happens once per simulator connection, because it can't
   be registered twice; joining a group only adds a session on top. `sim-ids.ts` holds every id range, and
   `createSimEvents` maps event names once per connection.

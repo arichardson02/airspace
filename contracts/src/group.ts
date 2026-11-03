@@ -98,4 +98,6 @@ export type CoopMessage =
   // Every MCDU key pressed so far, for a pilot whose FMS hasn't been touched yet.
   | { type: "mcdu-history"; presses: McduPress[] }
   // The host's date and time, sent on join and every minute.
-  | { type: "clock"; clock: SimClock };
+  | { type: "clock"; clock: SimClock }
+  // Sent every second on the reliable channel, so a peer can tell the link is alive while nothing else is sent.
+  | { type: "heartbeat" };
