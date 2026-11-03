@@ -56,6 +56,8 @@ export function startSharing(options: {
   let peer: Hello | undefined;
   let peerId = "";
   let peerConnected = false;
+  // Whether we were in the group first: the host's clock and flyPad settings are the ones both use.
+  let host = false;
   let helloLate = false;
   let sync: CockpitSync | undefined;
   let profile: AircraftProfile | undefined;
@@ -112,7 +114,8 @@ export function startSharing(options: {
       return;
     }
     if (sync) return;
-    sync = startCockpitSync({ io: sim.io, profile: aircraft.profile, self, send });
+    sync = startCockpitSync({ io: sim.io, profile: aircraft.profile, self, host, send });
+    if (host) send({ type: "cockpit", changes: sync.settings() });
     console.log(`Cockpit sync started (${aircraft.profile.id} v${aircraft.profile.version})`);
     // The aircraft loaded first is the one whose cockpit both start from; on a tie, the lower pilot id's.
     const ours =
@@ -149,8 +152,9 @@ export function startSharing(options: {
   readAircraft();
 
   return {
-    onPeerConnected(host) {
+    onPeerConnected(isHost) {
       peerConnected = true;
+      host = isHost;
       sendHello();
       helloTimer = setTimeout(() => {
         helloLate = peer === undefined;

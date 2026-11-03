@@ -87,6 +87,11 @@ export interface Control {
   only?: { key: string; equals: number };
   /** Can't be undone (fire agents, IDG disconnect); worth knowing when testing in the sim. */
   irreversible?: boolean;
+  /**
+   * A setting the host's aircraft decides (a flyPad option): only the host's value is sent, and the other side is
+   * set back to it whenever its own changes.
+   */
+  fromHost?: boolean;
 }
 
 /** Controls grouped by panel, in the order they come alive when the aircraft powers up. */

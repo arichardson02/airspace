@@ -27,6 +27,8 @@ export interface CockpitSync {
   receive(from: string, message: CockpitMessage): void;
   /** Every control's current value, for a co-pilot whose cockpit should start from ours. */
   snapshot(): CockpitValue[];
+  /** The `fromHost` settings' current values, which the host sends when the cockpits connect. */
+  settings(): CockpitValue[];
   stop(): void;
 }
 
@@ -35,9 +37,11 @@ export function startCockpitSync(options: {
   profile: AircraftProfile;
   /** Our pilot id, which breaks ties between changes made at the same moment. */
   self: string;
+  /** Whether we're the host, whose aircraft decides the `fromHost` settings. */
+  host: boolean;
   send: (message: CoopMessage) => void;
 }): CockpitSync {
-  const { io, profile, self, send } = options;
+  const { io, profile, self, host, send } = options;
   const controls = profile.areas.flatMap((area) => area.controls);
   const byKey = new Map(controls.map((control) => [control.key, control]));
   const actions = new Map(profile.actions.map((action) => [action.key, action]));
@@ -54,6 +58,8 @@ export function startCockpitSync(options: {
     const value = io.value(control.key);
     if (value !== undefined) seen.set(control.key, value);
   }
+  // The host's value of each `fromHost` setting, which the other side is kept at.
+  const hostValues = new Map<string, number>();
   const pending = new Map<string, CockpitValue>();
   const sentAt = new Map<string, number>();
   const replaying = new Map<string, number>();
@@ -76,9 +82,19 @@ export function startCockpitSync(options: {
     return true;
   };
 
+  // The other side's flyPad writes its own choice when it loads or the pilot changes it; the host's is put back.
+  const keepHostValue = (control: Control, value: number) => {
+    const hostValue = hostValues.get(control.key);
+    if (hostValue !== undefined && hostValue !== value) apply(control, hostValue);
+  };
+
   const onValue = (control: Control, value: number) => {
     const before = seen.get(control.key);
     seen.set(control.key, value);
+    if (control.fromHost === true && !host) {
+      keepHostValue(control, value);
+      return;
+    }
     const now = Date.now();
     // The first reading of each control isn't a change.
     if (before === undefined || now < quietUntil || snapshotQueue.length > 0) return;
@@ -106,6 +122,7 @@ export function startCockpitSync(options: {
       io.press(control);
       return;
     }
+    if (control.fromHost === true) hostValues.set(control.key, value);
     applied.set(control.key, { value, at: Date.now() });
     io.write(control, value);
   };
@@ -113,6 +130,8 @@ export function startCockpitSync(options: {
   const accept = (from: string, change: CockpitValue): Control | undefined => {
     const control = byKey.get(change.key);
     if (!control || !Number.isFinite(change.value) || !Number.isFinite(change.seq)) return undefined;
+    // The host's settings are its own; it never takes them from the other side.
+    if (control.fromHost === true && host) return undefined;
     const current = latest.get(change.key);
     if (current && (change.seq < current.seq || (change.seq === current.seq && from >= current.pilot))) {
       return undefined;
@@ -141,6 +160,11 @@ export function startCockpitSync(options: {
     if (snapshotQueue.length === 0) quietUntil = Date.now() + SETTLE_MS;
   };
   const timer = setInterval(flush, FLUSH_MS);
+
+  const currentValue = (control: Control): CockpitValue[] => {
+    const value = seen.get(control.key);
+    return value === undefined ? [] : [{ key: control.key, value, seq: latest.get(control.key)?.seq ?? 0 }];
+  };
 
   // Snapshot values in the profile's power-up order, so systems come alive in the order a crew would bring them up.
   const order = new Map(controls.map((control, index) => [control.key, index]));
@@ -171,12 +195,11 @@ export function startCockpitSync(options: {
     },
     snapshot() {
       return controls
-        .filter((control) => control.kind !== "momentary" && control.risingOnly !== true && active(control))
-        .flatMap((control) => {
-          const value = seen.get(control.key);
-          return value === undefined ? [] : [{ key: control.key, value, seq: latest.get(control.key)?.seq ?? 0 }];
-        });
+        .filter((control) => control.kind !== "momentary" && control.risingOnly !== true && control.fromHost !== true)
+        .filter(active)
+        .flatMap(currentValue);
     },
+    settings: () => controls.filter((control) => control.fromHost === true).flatMap(currentValue),
     stop() {
       clearInterval(timer);
     },

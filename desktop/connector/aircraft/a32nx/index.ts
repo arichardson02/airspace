@@ -1,6 +1,7 @@
 import { lvar, type AircraftProfile } from "../profile.js";
 import { flightControls } from "./flight-controls.js";
 import { glareshieldActions, glareshieldAreas, glareshieldAux } from "./glareshield.js";
+import { flypadAreas } from "./flypad.js";
 import { handlingAreas } from "./handling.js";
 import { mcdu } from "./mcdu.js";
 import { overheadAreas } from "./overhead.js";
@@ -15,7 +16,7 @@ const ready = lvar("A32NX_IS_READY");
 
 export const a32nx: AircraftProfile = {
   id: "fbw-a32nx",
-  version: 2,
+  version: 3,
   name: "A320neo (FlyByWire)",
   identity: [edition, ready],
   // Liveries set their own titles and SimObjects folders, so the ATC model and FlyByWire's own variables decide.
@@ -24,7 +25,7 @@ export const a32nx: AircraftProfile = {
     (identity.values.get(edition.name) ?? 0) > 0 &&
     identity.values.get(ready.name) === 1,
   // Power-up order: the overhead brings power and air, then the glareshield and pedestal come alive.
-  areas: [...overheadAreas, ...glareshieldAreas, ...pedestalAreas, ...handlingAreas],
+  areas: [...flypadAreas, ...overheadAreas, ...glareshieldAreas, ...pedestalAreas, ...handlingAreas],
   aux: { ...glareshieldAux, ...pedestalAux },
   actions: [...glareshieldActions, ...pedestalActions],
   flightControls,

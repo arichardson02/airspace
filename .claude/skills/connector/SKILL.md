@@ -32,7 +32,7 @@ It has no Electron imports of its own.
   effects (each sim computes those). Changes go both ways regardless of who flies, batched every 50 ms; the newest
   change per control wins (`seq`, ties to the lower pilot id), and a value we set isn't sent back when it reads back.
   Peers exchange a `hello` (aircraft, profile id and version); cockpits sync only between equal profiles, else only
-  the motion is shared and the window says why. The aircraft loaded first sends a snapshot. The pilot flying's
+  the motion is shared and the window says why. The aircraft loaded first sends a snapshot. Controls marked `fromHost` (the A32NX's flyPad options, `aircraft/a32nx/flypad.ts`) are the host's: only the host sends them, and the other side is set back to the host's value when its own changes. The pilot flying's
   flyer-only controls ride in the flight message every frame.
 - **MCDU** (`aircraft/a32nx/mcdu.ts`): presses are seen through each key's push-animation L:var and replayed through
   FlyByWire SimBridge (`ws://127.0.0.1:8380/interfaces/v1/mcdu`), which both pilots run with SimBridge turned on in

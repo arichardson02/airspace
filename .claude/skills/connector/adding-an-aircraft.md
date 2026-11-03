@@ -21,7 +21,7 @@ the escape hatch). The FlyByWire A32NX in `aircraft/a32nx/` is the worked exampl
    - only an H:event → `hEvent()` (needs the in-sim module);
    - anything else → `custom()`.
      Knobs get a `tolerance` and `rateHz`; switches the aircraft resets itself get `risingOnly`; values that only mean
-     something in a mode get `only`. Sync only what the pilot touches, never computed effects.
+     something in a mode get `only`; settings the host's aircraft should decide (an EFB's realism options, when they're readable as variables) get `fromHost`. Sync only what the pilot touches, never computed effects.
 4. **Register it** in `profiles.ts`, before the generic profile catches it.
 5. **Bump `version`** whenever keys or meanings change: cockpits only sync between equal versions.
 6. **Test it in co-op**: two pilots, the same aircraft, each panel switched from one seat and checked on the other.
