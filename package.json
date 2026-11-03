@@ -1,19 +1,25 @@
 {
   "name": "fs-career",
   "private": true,
+  "type": "module",
   "description": "Repo-wide tooling only. Each package installs and builds on its own.",
   "scripts": {
-    "lint": "oxlint --type-aware",
+    "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm install --frozen-lockfile && pnpm format:check && pnpm lint && pnpm --filter connector --filter desktop --filter ui typecheck && pnpm --filter backend --filter frontend build && fallow audit",
+    "fallow": "fallow dead-code && fallow dupes --fail-on-issues && fallow health --complexity --fail-on-issues",
+    "typecheck": "tsc -p tsconfig.json",
+    "check": "pnpm install --frozen-lockfile && pnpm format:check && pnpm lint && pnpm typecheck && pnpm --filter connector --filter desktop --filter ui typecheck && pnpm --filter backend --filter frontend build && pnpm fallow",
     "prepare": "node -e \"try{require('node:child_process').execFileSync('git',['config','core.hooksPath','.githooks'],{stdio:'ignore'})}catch{}\""
   },
   "packageManager": "pnpm@12.15.0",
   "devDependencies": {
+    "@oxlint/plugins": "1.90.0",
+    "@types/node": "24.0.0",
     "fallow": "3.38.1",
-    "oxlint": "^1.90.0",
+    "oxlint": "1.90.0",
     "oxlint-tsgolint": "^7.0.2005",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "typescript": "6.0.2"
   }
 }

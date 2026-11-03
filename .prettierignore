@@ -9,3 +9,6 @@ backend/drizzle/
 infra/
 # Generated map data (frontend/scripts).
 frontend/lib/world-dots.json
+# Vendored upstream files stay as published.
+tools/oxlint/anti-slop/
+.claude/skills/fallow/

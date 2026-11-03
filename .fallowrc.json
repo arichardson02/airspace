@@ -1,4 +1,55 @@
 {
-  "entry": ["desktop/electron/preload.ts", "frontend/scripts/*.mjs"],
-  "ignoreDependencies": ["@tailwindcss/turbopack"]
+  "$schema": "./node_modules/fallow/schema.json",
+  "sealed": true,
+  "entry": ["desktop/electron/preload.ts", "frontend/scripts/*.mts", "scripts/*.ts"],
+  "ignorePatterns": [".claude/**", "tools/oxlint/anti-slop/**", "**/dist/**"],
+  "ignoreDependencies": ["@tailwindcss/turbopack", "@oxlint/plugins"],
+  "rules": {
+    "boundary-violation": "error",
+    "dev-dependencies-in-production": "error",
+    "re-export-cycle": "error",
+    "require-suppression-reason": "error",
+    "stale-suppressions": "error",
+    "test-only-dependencies": "error",
+    "type-only-dependencies": "error",
+    "unused-dev-dependencies": "error",
+    "unused-optional-dependencies": "error"
+  },
+  "boundaries": {
+    "zones": [
+      { "name": "contracts", "patterns": ["contracts/**"] },
+      { "name": "ui", "patterns": ["ui/**"] },
+      { "name": "backend", "patterns": ["backend/**"] },
+      { "name": "connector", "patterns": ["connector/**"] },
+      { "name": "desktop-main", "patterns": ["desktop/electron/**", "desktop/scripts/**", "desktop/vite.config.ts"] },
+      { "name": "desktop-page", "patterns": ["desktop/src/**", "desktop/index.html"] },
+      { "name": "frontend", "patterns": ["frontend/**"] }
+    ],
+    "rules": [
+      { "from": "contracts", "allow": [] },
+      { "from": "ui", "allow": [] },
+      { "from": "backend", "allow": ["contracts"] },
+      { "from": "connector", "allow": ["contracts"] },
+      { "from": "desktop-main", "allow": ["contracts", "connector"] },
+      { "from": "desktop-page", "allow": ["contracts", "ui"] },
+      { "from": "frontend", "allow": ["ui"] }
+    ],
+    "coverage": { "requireAllFiles": true, "allowUnmatched": ["oxlint.config.ts", "scripts/**"] }
+  },
+  "duplicates": {
+    "enabled": true,
+    "ignore": ["tools/oxlint/anti-slop/**", "**/dist/**"],
+    "minLines": 5,
+    "minOccurrences": 2,
+    "minTokens": 50,
+    "mode": "mild",
+    "threshold": 0.01
+  },
+  "health": {
+    "ignore": ["tools/oxlint/anti-slop/**", "**/dist/**"],
+    "maxCognitive": 15,
+    "maxCyclomatic": 20,
+    "maxCrap": 4294967295,
+    "maxUnitSize": 4294967295
+  }
 }

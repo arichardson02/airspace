@@ -4,9 +4,9 @@ A career app for Microsoft Flight Simulator 2020, at [airspace.club](https://air
 Airspace desktop app, sign in, and fly; Airspace turns their flights into jobs, a logbook and rank, and lets two
 pilots share one cockpit in co-op.
 
-> **Working in this repo (people and AI agents):** read [AGENTS.md](AGENTS.md), then the area guide it points to in
-> `.claude/skills/` (each package, the database and auth conventions, the design system, infrastructure). This
-> README is the overview.
+> **Working in this repo:** people start with [CONTRIBUTING.md](CONTRIBUTING.md) (setup, commands, the quality
+> gate); AI agents follow [AGENTS.md](AGENTS.md) (rules, boundaries) and the area guides it points to in
+> `.claude/skills/`. This README is the overview.
 
 ## How it fits together
 
@@ -41,19 +41,19 @@ pilots share one cockpit in co-op.
 
 A pnpm workspace with one lockfile:
 
-| Package                                           | What it is                                                                |
-| ------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`backend/`](.claude/skills/backend/SKILL.md)     | NestJS API: auth, ingest, co-op signaling, Postgres via Drizzle           |
-| [`frontend/`](.claude/skills/frontend/SKILL.md)   | Next.js website: marketing page, sign-in pages, signed-in dashboard       |
-| [`desktop/`](.claude/skills/desktop/SKILL.md)     | Electron app pilots install; hosts the connector                          |
-| [`connector/`](.claude/skills/connector/SKILL.md) | Simulator connector (SimConnect, sign-in, co-op); also runs in a terminal |
-| [`contracts/`](AGENTS.md#repo-layout)             | Types and zod schemas shared by the backend, connector and desktop app    |
-| [`ui/`](.claude/skills/design-system/SKILL.md)    | Shared design: theme, Inter, buttons, fields, logo                        |
-| [`infra/`](.claude/skills/infra/SKILL.md)         | Terraform for DigitalOcean                                                |
+| Package                                              | What it is                                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`backend/`](.claude/skills/backend/SKILL.md)        | NestJS API: auth, ingest, co-op signaling, Postgres via Drizzle           |
+| [`frontend/`](.claude/skills/frontend/SKILL.md)      | Next.js website: marketing page, sign-in pages, signed-in dashboard       |
+| [`desktop/`](.claude/skills/desktop/SKILL.md)        | Electron app pilots install; hosts the connector                          |
+| [`connector/`](.claude/skills/connector/SKILL.md)    | Simulator connector (SimConnect, sign-in, co-op); also runs in a terminal |
+| [`contracts/`](AGENTS.md#repo-layout-and-boundaries) | Types and zod schemas shared by the backend, connector and desktop app    |
+| [`ui/`](.claude/skills/design-system/SKILL.md)       | Shared design: theme, Inter, buttons, fields, logo                        |
+| [`infra/`](.claude/skills/infra/SKILL.md)            | Terraform for DigitalOcean                                                |
 
 Stack: TypeScript everywhere, Node 24, pnpm 12, NestJS 12, Next.js 16, React 19, Tailwind 4, Electron,
-Drizzle with Postgres 18, Better Auth, oxlint and Prettier. How we write code is in
-[AGENTS.md: Working conventions](AGENTS.md#working-conventions).
+Drizzle with Postgres 18, Better Auth, Oxlint (with the anti-slop rules), Fallow and Prettier. How we write code
+is in [AGENTS.md: Implementation standard](AGENTS.md#implementation-standard).
 
 ## Quick start
 
@@ -66,10 +66,10 @@ pnpm --filter frontend dev           # website on :3001
 pnpm --filter desktop dev            # desktop app
 ```
 
-Each app reads its own `.env` (listed in its [area guide](AGENTS.md#area-guides)). `pnpm lint` and
-`pnpm format` run across the whole repo ([Repo-wide commands](AGENTS.md#repo-wide-commands-run-at-the-root)).
-Pushing to `main` deploys the website and API ([Infrastructure and deploys](.claude/skills/infra/SKILL.md)).
-Full setup is in [AGENTS.md: Getting started](AGENTS.md#getting-started).
+Each app reads its own `.env` (listed in its [area guide](AGENTS.md#area-guides)). `pnpm check` runs the whole
+quality gate, and runs before every push ([Useful commands](CONTRIBUTING.md#useful-commands)). Pushing to `main`
+deploys the website and API ([Infrastructure and deploys](.claude/skills/infra/SKILL.md)). Full setup is in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Status
 

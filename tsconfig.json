@@ -1,0 +1,17 @@
+{
+  // Root tooling only (scripts/ and the lint config); each package has its own tsconfig. Node runs these files
+  // directly by stripping types, so they may only use erasable syntax.
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2024",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "types": ["node"]
+  },
+  "include": ["scripts", "oxlint.config.ts"]
+}

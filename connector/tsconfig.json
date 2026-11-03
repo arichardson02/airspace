@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2023",
+    // Node only: the DOM library's WebSocket would hide undici's, which takes headers.
+    "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "rootDir": "src",

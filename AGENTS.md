@@ -1,12 +1,20 @@
-# Airspace
+# Working on Airspace
 
 Airspace (airspace.club) is a career app for Microsoft Flight Simulator 2020. Pilots install a desktop app that
 connects to the simulator, sign in with their Airspace account, and fly. Their flights feed jobs, a logbook and
-a shared-cockpit co-op mode, where two pilots fly one aircraft together.
+a shared-cockpit co-op mode, where two pilots fly one aircraft together. Describe only what the code does today;
+never present a planned feature as built.
 
-This file is the short guide every task needs. Each area has its own guide in `.claude/skills/`, which Claude Code
-loads only when a task touches that area; other agents and people can open them directly. Keep them current when
-something they describe changes, and keep this file short: detail belongs in the area's guide.
+This file holds the rules every task needs. Setup and commands for people are in `CONTRIBUTING.md`. Each area has
+its own guide in `.claude/skills/`, which Claude Code loads only when a task touches that area; other agents can
+open them directly. Keep them current when something they describe changes, and keep this file short.
+
+## Start here
+
+1. Read the area guide for what you're changing before changing it. Direct user instructions take precedence.
+2. Work only in the assigned scope. Don't weaken, bypass or relabel a failing check. Raise contradictions instead
+   of silently redesigning around them.
+3. Check `git status` before editing and preserve unrelated work; several agents may be changing the repo at once.
 
 ## Area guides
 
@@ -21,10 +29,12 @@ something they describe changes, and keep this file short: detail belongs in the
 | [design-system](.claude/skills/design-system/SKILL.md) | Anything visual on the website or desktop app; `ui/`             |
 | [infra](.claude/skills/infra/SKILL.md)                 | Deploys, Terraform, DigitalOcean, DNS, production env            |
 
-## Repo layout
+Tool skill: `fallow` (dead code, duplication, boundaries and changed-code audits), copied from the pinned
+`fallow` package's `skills/fallow/`; recopy it when that version changes.
 
-One pnpm workspace (`pnpm-workspace.yaml`, one `pnpm-lock.yaml`). Each package has its own `package.json`, and
-packages depend on each other with `"workspace:*"`.
+## Repo layout and boundaries
+
+One pnpm workspace. Each package has its own `package.json`; packages depend on each other with `"workspace:*"`.
 
 | Package      | What it is                                                                      | Runs where           |
 | ------------ | ------------------------------------------------------------------------------- | -------------------- |
@@ -36,54 +46,63 @@ packages depend on each other with `"workspace:*"`.
 | `ui/`        | The shared design: theme tokens, Inter, buttons, fields, logo, panel            | Library              |
 | `infra/`     | Terraform for DigitalOcean (App Platform app, managed Postgres)                 | HCP Terraform        |
 
-Dependencies between them: `backend`, `connector` and `desktop` use `contracts`; `frontend` and `desktop` use
-`ui`; `desktop` bundles `connector`'s source.
+Fallow enforces the dependency direction (`boundaries` in `.fallowrc.json`):
 
-## Getting started
+- `contracts` and `ui` import no other package.
+- `backend` and `connector` may use `contracts`; `frontend` may use `ui`.
+- `desktop/electron` (main process) may use `contracts` and `connector`; `desktop/src` (the window) may use
+  `contracts` and `ui`, never the connector or Node APIs. It talks to the main process only through
+  `window.airspace`.
+- Flight data never goes through the server; co-op streams peer to peer.
 
-Requires Node 24, pnpm 12 (`packageManager` pins it) and Docker.
+## Implementation standard
 
-```sh
-pnpm install                     # everything, from the repo root
-docker compose up -d             # local Postgres 18 (compose.yaml)
-pnpm --filter backend db:migrate
-pnpm --filter backend start:dev  # http://localhost:3000/api
-pnpm --filter frontend dev       # http://localhost:3001, proxies /api to the backend
-pnpm --filter desktop dev        # the desktop app, with the connector inside
-```
+- Prefer the smallest complete change. Avoid compatibility aliases, speculative extension points, and wrappers
+  around a single call.
+- Parse untrusted values (request bodies, IPC messages, WebSocket and data-channel messages, `.env`) once at the
+  boundary with zod, and keep the resulting type. Don't widen known values and cast them back later.
+- Avoid type assertions. When one is unavoidable, put a `// SAFETY:` comment directly above it that names the
+  invariant that was checked.
+- Make invalid states hard to represent with focused types and explicit state transitions.
+- Exported functions and components declare their return types.
+- Comments explain why: invariants, ownership, wire compatibility, a surprising constraint. Delete narration that
+  repeats the code. Match the naming and idiom around you.
+- Keep diffs focused. Delete superseded code and dead exports in the same change. Don't add a dependency when a
+  small local implementation is clear.
 
-`contracts` builds on install (its `prepare` script); run `pnpm --filter @fs-career/contracts dev` to rebuild
-it while changing it. `ui` is used as source, so its changes show up live. Each app reads its own `.env`; the
-variables are in its area guide.
+Oxlint (`oxlint.config.ts`) runs strict type-aware rules plus the vendored `anti-slop` rules
+(`tools/oxlint/anti-slop/`), and fails on warnings. Treat a failure as evidence of a design or boundary problem
+first. Use a narrow exception only when the code documents a real invariant the rule can't see, and never add a
+disable comment just to get a check through. Fallow suppressions need a reason
+(`// fallow-ignore-next-line <rule> -- <why>`).
 
-### Repo-wide commands (run at the root)
+Use the `fallow` skill for dead-code, duplication, boundary or changed-code audits. Agent runs use JSON and quiet
+output. Never run its watch mode, enable telemetry, or apply `fallow fix` before reviewing a dry run, and check
+that removed dependencies aren't referenced by name in config (as `@tailwindcss/turbopack` is in
+`next.config.ts`).
 
-| Command                 | Does                                                                     |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `pnpm lint`             | oxlint over every package, with type-aware rules (`.oxlintrc.json`)      |
-| `pnpm format`           | Prettier over every package (`.prettierrc.json`)                         |
-| `pnpm format:check`     | Fails if anything isn't formatted                                        |
-| `pnpm fallow`           | Unused code and dependencies, duplication, complexity (`.fallowrc.json`) |
-| `pnpm check`            | Everything the pre-push hook runs (below)                                |
-| `pnpm --filter <pkg> …` | Any package's script, e.g. `pnpm --filter connector typecheck`           |
+## Conventions
 
-There is one lint config, one format config and one `.gitignore` for the whole repo; packages don't have their own.
-Files Fallow can't find as entry points (bundled or run by hand) are listed under `entry` in `.fallowrc.json`.
-
-### Pre-push hook
-
-`pnpm install` points git at `.githooks/`, whose `pre-push` runs `pnpm check`: a frozen-lockfile install,
-`format:check`, `lint`, the connector, desktop and ui typechecks, the backend and frontend builds, and
-`fallow audit` (which fails only on findings the push adds). A failure cancels the push. It checks the working
-tree, so commit or stash unrelated changes first. Agents never skip it with `--no-verify`; fix what fails, or ask.
-
-## Working conventions
-
-- TypeScript everywhere, ESM, strict mode. Format with Prettier (double quotes, 120 columns) and keep
-  `pnpm lint` clean.
-- Comments explain why, not what, and read like the surrounding code. Match the naming and idiom around you.
+- TypeScript everywhere, ESM, strict mode. Prettier: double quotes, 120 columns.
 - Commits use conventional messages scoped to the package: `feat(connector): …`, `fix(backend): …`.
 - Tests are scaffolding: write them to confirm a flow, then delete them. There's no committed test suite or
   `test` script.
-- Windows checkouts use CRLF in the working tree and LF in git; Prettier keeps whatever a file has
-  (`endOfLine: "auto"`).
+- Windows checkouts use CRLF in the working tree and LF in git; Prettier keeps whatever a file has.
+
+## Quality gate
+
+`pnpm check` is the gate: a frozen-lockfile install, `format:check`, `lint`, the connector, desktop and ui
+typechecks, the backend and frontend builds, and `pnpm fallow` (dead code, duplicates and complexity, failing on
+any finding). Run the narrowest relevant check while iterating and `pnpm check` before handing off.
+
+It runs in two places:
+
+- **Before every push**, from `.githooks/pre-push`. A failure cancels the push. Never skip it with `--no-verify`;
+  fix what fails, or ask.
+- **When a Claude Code session ends** with changes, from the Stop hook in `.claude/settings.json`
+  (`scripts/agent-quality-gate.ts`). If it reports a failed or unverified state, report that as the blocker and
+  don't call the work verified.
+
+## Writing
+
+Use plain, specific prose in docs, guides and commit messages. Keep claims tied to code that exists.
