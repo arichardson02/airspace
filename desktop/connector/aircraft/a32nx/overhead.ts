@@ -50,6 +50,10 @@ const lightsSet = (name: string, indices: readonly number[], on: boolean): strin
 
 const elec: Control[] = [
   ...family([1, 2], (n) => lvarSwitch(`ovhd.elec.bat${n}`, `A32NX_OVHD_ELEC_BAT_${n}_PB_IS_AUTO`)),
+  // Whether a ground power unit is plugged in: set by the flyPad's GPU button and the sim's ground services, and
+  // dropped by FlyByWire when the aircraft moves. Each sim keeps its own, so it's synced like a switch; without it
+  // EXT PWR does nothing on the side whose GPU isn't connected. Before EXT PWR, which needs it.
+  lvarSwitch("ovhd.elec.gpu", "A32NX_EXT_PWR_AVAIL:1"),
   // The click only acts while external power is available; the other side's pushbutton follows it regardless.
   lvarSwitch("ovhd.elec.extPwr", "A32NX_OVHD_ELEC_EXT_PWR_PB_IS_ON"),
   ...family([1, 2], (n) => ({

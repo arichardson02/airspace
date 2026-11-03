@@ -15,7 +15,7 @@ const ready = lvar("A32NX_IS_READY");
 
 export const a32nx: AircraftProfile = {
   id: "fbw-a32nx",
-  version: 1,
+  version: 2,
   name: "A320neo (FlyByWire)",
   identity: [edition, ready],
   // Liveries set their own titles and SimObjects folders, so the ATC model and FlyByWire's own variables decide.
