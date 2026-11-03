@@ -182,8 +182,9 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
             if (joinedBeforeUs) setFlyer(peer.pilotId, 0);
             sharing?.onPeerConnected(!joinedBeforeUs);
           },
-          onPeerLeft: (pilotId) => {
-            console.log(`${names.get(pilotId) ?? pilotId} left the group`);
+          onPeerLeft: (pilotId, lost) => {
+            const name = names.get(pilotId) ?? pilotId;
+            console.log(lost ? `Lost the connection to ${name}` : `${name} left the group`);
             peers.delete(pilotId);
             sharing?.onPeerLeft();
             changed();
@@ -214,6 +215,9 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
               case "mcdu-history":
               case "clock":
                 sharing?.receive(pilotId, message);
+                break;
+              case "heartbeat":
+                // The session consumes heartbeats; they never reach here.
                 break;
             }
           },

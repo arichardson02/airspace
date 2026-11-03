@@ -3,12 +3,21 @@ import type { ClientSignalingMessage, CoopMessage, GroupPeer, Signal } from "@fs
 import { parseCoopMessage, parseServerMessage } from "./messages.js";
 
 const ICE_SERVERS = ["stun:stun.l.google.com:19302"];
+// Every peer sends a heartbeat this often on the reliable channel, so a dead link shows up even when nothing else is
+// being sent (the follower sends nothing else while the cockpits are still).
+const HEARTBEAT_MS = 1_000;
+// A peer heard from within this long counts as connected; past it, the link is treated as lost. Only peers that send
+// heartbeats are timed out, so an older connector that sends none isn't dropped.
+const PEER_TIMEOUT_MS = 5_000;
+// The waits before reconnecting to the server after it drops, the last repeating until it's back.
+const RECONNECT_DELAYS_MS = [1_000, 2_000, 5_000, 10_000];
 
 export interface GroupHandlers {
   onPeerConnected(peer: GroupPeer, joinedBeforeUs: boolean): void;
-  onPeerLeft(pilotId: string): void;
+  /** A peer left the group, or (`lost`) stopped answering; either may connect again later. */
+  onPeerLeft(pilotId: string, lost: boolean): void;
   onMessage(pilotId: string, message: CoopMessage): void;
-  /** The signaling server dropped us, e.g. because the session ended or the pilot joined elsewhere. */
+  /** The signaling server ended our session: it's gone, or the pilot joined from somewhere else. */
   onClosed(reason: string): void;
 }
 
@@ -18,9 +27,23 @@ export interface GroupSession {
   leave(): void;
 }
 
+interface PeerLink {
+  connection: PeerConnection;
+  data?: DataChannel;
+  fast?: DataChannel;
+  /** Whether the reliable channel opened and the peer was reported connected. */
+  connected: boolean;
+  heardAt: number;
+  /** Whether the peer sends heartbeats, so silence from it means the link is gone. */
+  beating: boolean;
+  /** A peer's candidates can arrive before its description, which libdatachannel rejects, so they wait for it. */
+  waitingCandidates?: { candidate: string; mid: string }[];
+}
+
 /**
  * Joins a group through the signaling server, then exchanges JSON messages directly with every peer over WebRTC.
- * The server knows who we are from the session token, and tells every peer.
+ * The server knows who we are from the session token, and tells every peer. Once peers are connected the server is
+ * only needed to connect again: if it drops, the session reconnects to it in the background and keeps its peers.
  */
 export async function joinGroup(
   signalingUrl: string,
@@ -29,22 +52,38 @@ export async function joinGroup(
   self: GroupPeer,
   handlers: GroupHandlers,
 ): Promise<GroupSession> {
-  // Node's WebSocket (undici) takes headers, unlike the browser's, so the upgrade request carries the token.
-  const socket = new WebSocket(signalingUrl, { headers: { authorization: `Bearer ${token}` } });
-  const connections = new Map<string, PeerConnection>();
-  const channels = new Map<string, DataChannel>();
-  const fastChannels = new Map<string, DataChannel>();
-  // A peer's candidates can arrive before its description, which libdatachannel rejects, so they wait for it.
-  const waitingCandidates = new Map<string, { candidate: string; mid: string }[]>();
+  const links = new Map<string, PeerLink>();
+  let socket: WebSocket | undefined;
+  let opened = false;
+  let leaving = false;
+  let reconnects = 0;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
   const send = (message: ClientSignalingMessage) => {
-    socket.send(JSON.stringify(message));
+    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+  };
+
+  // A peer still answering keeps its link when the server announces it again or reports it gone: that only means
+  // one side's connection to the server dropped.
+  const isLive = (pilotId: string): boolean => {
+    const link = links.get(pilotId);
+    return link?.data?.isOpen() === true && (!link.beating || Date.now() - link.heardAt < PEER_TIMEOUT_MS);
+  };
+
+  const remove = (pilotId: string, report?: { lost: boolean }) => {
+    const link = links.get(pilotId);
+    if (!link) return;
+    links.delete(pilotId);
+    link.connection.close();
+    if (report && link.connected) handlers.onPeerLeft(pilotId, report.lost);
   };
 
   const connect = (peer: GroupPeer, initiator: boolean) => {
+    if (isLive(peer.pilotId)) return;
+    remove(peer.pilotId, { lost: true });
     const connection = new PeerConnection(self.pilotId, { iceServers: ICE_SERVERS });
-    connections.set(peer.pilotId, connection);
-    waitingCandidates.set(peer.pilotId, []);
+    const link: PeerLink = { connection, connected: false, heardAt: Date.now(), beating: false, waitingCandidates: [] };
+    links.set(peer.pilotId, link);
     connection.onLocalDescription((sdp, type) => {
       send({ type: "signal", to: peer.pilotId, signal: { sdp, type } });
     });
@@ -52,11 +91,23 @@ export async function joinGroup(
       send({ type: "signal", to: peer.pilotId, signal: { candidate, mid } });
     });
 
+    const onOpen = () => {
+      link.connected = true;
+      link.heardAt = Date.now();
+      handlers.onPeerConnected(peer, initiator);
+    };
     const attach = (channel: DataChannel) => {
-      (channel.getLabel() === "fast" ? fastChannels : channels).set(peer.pilotId, channel);
+      if (channel.getLabel() === "fast") link.fast = channel;
+      else link.data = channel;
       channel.onMessage((data) => {
+        link.heardAt = Date.now();
         const message = parseCoopMessage(isText(data) ? data : new TextDecoder().decode(data));
-        if (message !== undefined) handlers.onMessage(peer.pilotId, message);
+        if (message?.type === "heartbeat") link.beating = true;
+        else if (message !== undefined) handlers.onMessage(peer.pilotId, message);
+      });
+      // The peer closing its end: it left. A link replaced by a newer one closes too, and is already forgotten.
+      channel.onClosed(() => {
+        if (links.get(peer.pilotId) === link) remove(peer.pilotId, { lost: false });
       });
     };
 
@@ -64,48 +115,35 @@ export async function joinGroup(
     // "data" is reliable and ordered, so nothing sent is lost or reordered.
     if (initiator) {
       const channel = connection.createDataChannel("data");
-      channel.onOpen(() => {
-        handlers.onPeerConnected(peer, true);
-      });
+      channel.onOpen(onOpen);
       attach(channel);
       attach(connection.createDataChannel("fast", { unordered: true, maxRetransmits: 0 }));
     } else {
       connection.onDataChannel((channel) => {
         attach(channel);
-        if (channel.getLabel() === "data") handlers.onPeerConnected(peer, false);
+        if (channel.getLabel() === "data") onOpen();
       });
     }
   };
 
-  const disconnect = (pilotId: string) => {
-    connections.get(pilotId)?.close();
-    connections.delete(pilotId);
-    waitingCandidates.delete(pilotId);
-    channels.delete(pilotId);
-    fastChannels.delete(pilotId);
-    handlers.onPeerLeft(pilotId);
-  };
-
   const receiveSignal = (from: string, signal: Signal) => {
-    const connection = connections.get(from);
-    if (!connection) return;
+    const link = links.get(from);
+    if (!link) return;
     if ("sdp" in signal) {
       if (!isDescriptionType(signal.type)) return;
-      connection.setRemoteDescription(signal.sdp, signal.type);
-      const waiting = waitingCandidates.get(from) ?? [];
-      waitingCandidates.delete(from);
-      for (const { candidate, mid } of waiting) addCandidate(connection, candidate, mid);
+      link.connection.setRemoteDescription(signal.sdp, signal.type);
+      const waiting = link.waitingCandidates ?? [];
+      link.waitingCandidates = undefined;
+      for (const { candidate, mid } of waiting) addCandidate(link.connection, candidate, mid);
       return;
     }
-    const waiting = waitingCandidates.get(from);
-    if (waiting) waiting.push(signal);
-    else addCandidate(connection, signal.candidate, signal.mid);
+    if (link.waitingCandidates) link.waitingCandidates.push(signal);
+    else addCandidate(link.connection, signal.candidate, signal.mid);
   };
 
-  socket.addEventListener("message", (event) => {
-    const message = parseServerMessage(String(event.data));
+  const receiveServer = (text: string) => {
+    const message = parseServerMessage(text);
     if (message === undefined) return;
-
     switch (message.type) {
       case "peers":
         for (const peer of message.peers) connect(peer, true);
@@ -114,56 +152,107 @@ export async function joinGroup(
         connect(message.peer, false);
         break;
       case "peer-left":
-        disconnect(message.pilotId);
+        if (!isLive(message.pilotId)) remove(message.pilotId, { lost: false });
         break;
       case "signal":
         receiveSignal(message.from, message.signal);
         break;
     }
-  });
+  };
 
-  let leaving = false;
-  const opened = new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener(
-      "error",
-      () => {
-        reject(new Error("Couldn't reach the co-op server"));
-      },
-      { once: true },
-    );
-  });
+  const beat = JSON.stringify({ type: "heartbeat" } satisfies CoopMessage);
+  const heartbeat = setInterval(() => {
+    const now = Date.now();
+    for (const [pilotId, link] of links) {
+      if (link.data?.isOpen() === true) link.data.sendMessage(beat);
+      if (link.connected && link.beating && now - link.heardAt > PEER_TIMEOUT_MS) remove(pilotId, { lost: true });
+    }
+  }, HEARTBEAT_MS);
 
-  socket.addEventListener("close", (event) => {
-    if (leaving) return;
+  const stop = () => {
+    clearInterval(heartbeat);
+    clearTimeout(reconnectTimer);
+  };
+
+  const reconnect = () => {
+    const delay = RECONNECT_DELAYS_MS.at(Math.min(reconnects, RECONNECT_DELAYS_MS.length - 1)) ?? 0;
+    reconnects++;
+    if (reconnects === 1) console.warn("Lost the connection to the co-op server; reconnecting");
+    reconnectTimer = setTimeout(() => {
+      // A failed attempt closes too, which schedules the next one.
+      openSocket().catch(() => undefined);
+    }, delay);
+  };
+
+  const onSocketClosed = (closed: WebSocket, event: CloseEvent) => {
+    if (leaving || closed !== socket || !opened) return;
     // 4401: the session is gone. 4409: the same pilot joined from somewhere else.
-    const reason =
-      event.code === 4401 || event.code === 4409 ? event.reason : "Lost the connection to the co-op server";
-    console.warn(`Left the group: ${reason}`);
-    for (const pilotId of connections.keys()) disconnect(pilotId);
-    handlers.onClosed(reason);
-  });
+    if (event.code !== 4401 && event.code !== 4409) {
+      reconnect();
+      return;
+    }
+    console.warn(`Left the group: ${event.reason}`);
+    stop();
+    for (const pilotId of links.keys()) remove(pilotId, { lost: true });
+    handlers.onClosed(event.reason);
+  };
 
-  await opened;
-  send({ type: "join", groupCode });
+  const openSocket = (): Promise<void> =>
+    new Promise((resolve, reject) => {
+      // Node's WebSocket (undici) takes headers, unlike the browser's, so the upgrade request carries the token.
+      const next = new WebSocket(signalingUrl, { headers: { authorization: `Bearer ${token}` } });
+      socket = next;
+      next.addEventListener(
+        "open",
+        () => {
+          if (opened && reconnects > 0) console.log("Reconnected to the co-op server");
+          opened = true;
+          reconnects = 0;
+          send({ type: "join", groupCode });
+          resolve();
+        },
+        { once: true },
+      );
+      next.addEventListener(
+        "error",
+        () => {
+          reject(new Error("Couldn't reach the co-op server"));
+        },
+        { once: true },
+      );
+      next.addEventListener("message", (event) => {
+        receiveServer(String(event.data));
+      });
+      next.addEventListener("close", (event) => {
+        onSocketClosed(next, event);
+      });
+    });
+
+  try {
+    await openSocket();
+  } catch (error) {
+    stop();
+    throw error;
+  }
 
   return {
     broadcast(message, options) {
       const data = JSON.stringify(message);
-      for (const channel of (options?.fast === true ? fastChannels : channels).values()) {
-        if (channel.isOpen()) channel.sendMessage(data);
+      for (const link of links.values()) {
+        const channel = options?.fast === true ? link.fast : link.data;
+        if (channel?.isOpen() === true) channel.sendMessage(data);
       }
     },
     leave() {
       leaving = true;
-      for (const pilotId of connections.keys()) disconnect(pilotId);
-      socket.close();
+      stop();
+      for (const pilotId of links.keys()) remove(pilotId);
+      socket?.close();
       cleanup();
     },
   };
 }
 
-// Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
 /** Adds a peer's candidate. libdatachannel throws on one it can't use; that candidate is skipped, not fatal. */
 function addCandidate(connection: PeerConnection, candidate: string, mid: string): void {
   try {
@@ -173,6 +262,7 @@ function addCandidate(connection: PeerConnection, candidate: string, mid: string
   }
 }
 
+// Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
 function isText(data: string | Buffer | ArrayBuffer): data is string {
   return typeof data === "string";
 }

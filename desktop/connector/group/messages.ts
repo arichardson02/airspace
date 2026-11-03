@@ -111,6 +111,8 @@ function isOtherCoopMessage(json: unknown): json is Exclude<CoopMessage, { type:
       return "press" in json && isPress(json.press);
     case "mcdu-history":
       return "presses" in json && isList(json.presses, isPress);
+    case "heartbeat":
+      return true;
     case "clock":
       return "clock" in json && isClock(json.clock);
     default:
