@@ -47,7 +47,13 @@ export function startCockpitSync(options: {
   const applied = new Map<string, { value: number; at: number }>();
   // When a momentary control was last pressed from the network: its press reads back here as a rise of our own.
   const replayedPress = new Map<string, number>();
+  // What each control read last. The cockpit is read from before the sync starts, and only changes are reported, so
+  // it starts from those readings; otherwise a control's first change would pass for its first reading.
   const seen = new Map<string, number>();
+  for (const control of controls) {
+    const value = io.value(control.key);
+    if (value !== undefined) seen.set(control.key, value);
+  }
   const pending = new Map<string, CockpitValue>();
   const sentAt = new Map<string, number>();
   const replaying = new Map<string, number>();

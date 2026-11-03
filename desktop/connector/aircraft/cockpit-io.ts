@@ -77,6 +77,8 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
   let flightValues: number[] = [];
   let applied: (number | undefined)[] = [];
 
+  // Definitions with entries: SimConnect rejects clearing or requesting one that has none.
+  const defined = new Set<number>();
   const writeBuffer = new RawBuffer(12);
   const setDatum = (datum: Datum, value: number) => {
     const name = datumName(datum);
@@ -89,6 +91,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
         id = writeIds.size;
         writeIds.set(name, id);
         handle.addToDataDefinition(definition, name, datumUnit(datum), SimConnectDataType.FLOAT64, 0, id);
+        defined.add(definition);
       }
     }
     writeBuffer.clear();
@@ -182,8 +185,14 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
 
   const stopReading = () => {
     const user = SimConnectConstants.OBJECT_ID_USER;
-    handle.requestDataOnSimObject(REQUEST.cockpit, DEFINITION.cockpit, user, SimConnectPeriod.NEVER);
-    handle.requestDataOnSimObject(REQUEST.flightControls, DEFINITION.flightControls, user, SimConnectPeriod.NEVER);
+    if (defined.has(DEFINITION.cockpit)) {
+      handle.requestDataOnSimObject(REQUEST.cockpit, DEFINITION.cockpit, user, SimConnectPeriod.NEVER);
+    }
+    if (defined.has(DEFINITION.flightControls)) {
+      handle.requestDataOnSimObject(REQUEST.flightControls, DEFINITION.flightControls, user, SimConnectPeriod.NEVER);
+    }
+    for (const definition of defined) handle.clearDataDefinition(definition);
+    defined.clear();
   };
 
   return {
@@ -198,9 +207,6 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
       slots = [];
       slotIds = new Map();
       writeIds = new Map();
-      handle.clearDataDefinition(DEFINITION.cockpit);
-      handle.clearDataDefinition(DEFINITION.cockpitWrites);
-      handle.clearDataDefinition(DEFINITION.flightControls);
 
       const slotFor = (datum: Datum): Slot => {
         const name = datumName(datum);
@@ -229,6 +235,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
           epsilon,
           id,
         );
+        defined.add(DEFINITION.cockpit);
       });
       for (const control of next.flightControls) {
         handle.addToDataDefinition(
@@ -237,18 +244,21 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
           datumUnit(control.read),
           SimConnectDataType.FLOAT64,
         );
+        defined.add(DEFINITION.flightControls);
       }
 
       const user = SimConnectConstants.OBJECT_ID_USER;
-      handle.requestDataOnSimObject(
-        REQUEST.cockpit,
-        DEFINITION.cockpit,
-        user,
-        SimConnectPeriod.SIM_FRAME,
-        DataRequestFlag.DATA_REQUEST_FLAG_CHANGED | DataRequestFlag.DATA_REQUEST_FLAG_TAGGED,
-        0,
-        READ_EVERY_FRAMES,
-      );
+      if (defined.has(DEFINITION.cockpit)) {
+        handle.requestDataOnSimObject(
+          REQUEST.cockpit,
+          DEFINITION.cockpit,
+          user,
+          SimConnectPeriod.SIM_FRAME,
+          DataRequestFlag.DATA_REQUEST_FLAG_CHANGED | DataRequestFlag.DATA_REQUEST_FLAG_TAGGED,
+          0,
+          READ_EVERY_FRAMES,
+        );
+      }
       if (next.flightControls.length > 0) {
         handle.requestDataOnSimObject(
           REQUEST.flightControls,

@@ -1,5 +1,5 @@
 import { cleanup, PeerConnection, type DataChannel, type DescriptionType } from "node-datachannel";
-import type { ClientSignalingMessage, CoopMessage, GroupPeer } from "@fs-career/contracts";
+import type { ClientSignalingMessage, CoopMessage, GroupPeer, Signal } from "@fs-career/contracts";
 import { parseCoopMessage, parseServerMessage } from "./messages.js";
 
 const ICE_SERVERS = ["stun:stun.l.google.com:19302"];
@@ -34,6 +34,8 @@ export async function joinGroup(
   const connections = new Map<string, PeerConnection>();
   const channels = new Map<string, DataChannel>();
   const fastChannels = new Map<string, DataChannel>();
+  // A peer's candidates can arrive before its description, which libdatachannel rejects, so they wait for it.
+  const waitingCandidates = new Map<string, { candidate: string; mid: string }[]>();
 
   const send = (message: ClientSignalingMessage) => {
     socket.send(JSON.stringify(message));
@@ -42,6 +44,7 @@ export async function joinGroup(
   const connect = (peer: GroupPeer, initiator: boolean) => {
     const connection = new PeerConnection(self.pilotId, { iceServers: ICE_SERVERS });
     connections.set(peer.pilotId, connection);
+    waitingCandidates.set(peer.pilotId, []);
     connection.onLocalDescription((sdp, type) => {
       send({ type: "signal", to: peer.pilotId, signal: { sdp, type } });
     });
@@ -77,9 +80,26 @@ export async function joinGroup(
   const disconnect = (pilotId: string) => {
     connections.get(pilotId)?.close();
     connections.delete(pilotId);
+    waitingCandidates.delete(pilotId);
     channels.delete(pilotId);
     fastChannels.delete(pilotId);
     handlers.onPeerLeft(pilotId);
+  };
+
+  const receiveSignal = (from: string, signal: Signal) => {
+    const connection = connections.get(from);
+    if (!connection) return;
+    if ("sdp" in signal) {
+      if (!isDescriptionType(signal.type)) return;
+      connection.setRemoteDescription(signal.sdp, signal.type);
+      const waiting = waitingCandidates.get(from) ?? [];
+      waitingCandidates.delete(from);
+      for (const { candidate, mid } of waiting) addCandidate(connection, candidate, mid);
+      return;
+    }
+    const waiting = waitingCandidates.get(from);
+    if (waiting) waiting.push(signal);
+    else addCandidate(connection, signal.candidate, signal.mid);
   };
 
   socket.addEventListener("message", (event) => {
@@ -96,18 +116,9 @@ export async function joinGroup(
       case "peer-left":
         disconnect(message.pilotId);
         break;
-      case "signal": {
-        const connection = connections.get(message.from);
-        if (!connection) break;
-        if ("sdp" in message.signal) {
-          if (isDescriptionType(message.signal.type)) {
-            connection.setRemoteDescription(message.signal.sdp, message.signal.type);
-          }
-        } else {
-          connection.addRemoteCandidate(message.signal.candidate, message.signal.mid);
-        }
+      case "signal":
+        receiveSignal(message.from, message.signal);
         break;
-      }
     }
   });
 
@@ -153,6 +164,15 @@ export async function joinGroup(
 }
 
 // Peers only send JSON text; binary messages arrive as a Buffer or ArrayBuffer.
+/** Adds a peer's candidate. libdatachannel throws on one it can't use; that candidate is skipped, not fatal. */
+function addCandidate(connection: PeerConnection, candidate: string, mid: string): void {
+  try {
+    connection.addRemoteCandidate(candidate, mid);
+  } catch (error) {
+    console.warn(`Skipped a co-op connection candidate: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function isText(data: string | Buffer | ArrayBuffer): data is string {
   return typeof data === "string";
 }

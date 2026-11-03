@@ -105,6 +105,7 @@ export function startSharing(options: {
     const aircraft = sim.aircraft();
     const should = compatible();
     if (!should || !aircraft) {
+      if (sync) console.log(motionOnlyReason(aircraft, peer, helloLate));
       sync?.stop();
       sync = undefined;
       changed();
@@ -112,6 +113,7 @@ export function startSharing(options: {
     }
     if (sync) return;
     sync = startCockpitSync({ io: sim.io, profile: aircraft.profile, self, send });
+    console.log(`Cockpit sync started (${aircraft.profile.id} v${aircraft.profile.version})`);
     // The aircraft loaded first is the one whose cockpit both start from; on a tie, the lower pilot id's.
     const ours =
       peer !== undefined &&
@@ -178,6 +180,9 @@ export function startSharing(options: {
     receive(from, message) {
       switch (message.type) {
         case "hello":
+          console.log(
+            `Co-pilot's aircraft: ${message.aircraft} (${message.profile ?? "no profile"} v${message.profileVersion})`,
+          );
           peer = message;
           peerId = from;
           helloLate = false;
