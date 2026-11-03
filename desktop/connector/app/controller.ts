@@ -23,8 +23,6 @@ export interface ConnectorDeps<H extends SimHandle = SimHandle> {
   status: StatusStore;
   /** How long to wait between attempts to reach the simulator. */
   simRetryMs: number;
-  /** Joins this group whenever signed in with the simulator connected (the terminal's GROUP_CODE). */
-  autoJoinGroupCode?: string;
   signIn(signal: AbortSignal, onCode: (code: DeviceCode) => void): Promise<SignedIn>;
   /** Forgets the saved sign-in. */
   signOut(): Promise<void>;
@@ -130,7 +128,6 @@ export class Connector<H extends SimHandle = SimHandle> {
     this.status.update({ account: { state: "signed-in", pilot: signedIn.pilot } });
 
     if (this.sim) this.sendHello(this.sim.connection);
-    this.autoJoin();
   }
 
   /** Signs out, after the pilot asked to or the backend stopped accepting the session, and starts a new sign-in. */
@@ -183,7 +180,6 @@ export class Connector<H extends SimHandle = SimHandle> {
 
     // Position tracking (track/position-tracker.ts) is switched off for now.
     this.sendHello(connection);
-    this.autoJoin();
   }
 
   private onSimDisconnected(connection: SimConnection<H>): void {
@@ -204,13 +200,6 @@ export class Connector<H extends SimHandle = SimHandle> {
         sim: { name: connection.name, versionMajor: connection.versionMajor, versionMinor: connection.versionMinor },
       },
     });
-  }
-
-  private autoJoin(): void {
-    const groupCode = this.deps.autoJoinGroupCode;
-    if (groupCode !== undefined && groupCode !== "" && this.status.get().coop.state === "off") {
-      this.joinGroup(groupCode);
-    }
   }
 
   private joinGroup(rawCode: string): void {

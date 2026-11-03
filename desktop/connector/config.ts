@@ -2,7 +2,8 @@
 // whatever folder it starts from can't redirect it.
 if (process.env.AIRSPACE_BUILD_VERSION === undefined || process.env.AIRSPACE_BUILD_VERSION === "") {
   try {
-    // Loads connector/.env when present; real environment variables take precedence.
+    // Loads desktop/.env in development (scripts/dev.mjs starts Electron there); real environment variables
+    // take precedence.
     process.loadEnvFile();
   } catch {
     // No .env file, fall back to the environment and defaults.
@@ -17,8 +18,6 @@ export const config = {
   connectorVersion: process.env.AIRSPACE_BUILD_VERSION ?? process.env.npm_package_version ?? "dev",
   backendUrl,
   flushIntervalMs: 2_000,
-  // In the terminal, a group flight is joined whenever GROUP_CODE is set. The desktop app joins from its window.
-  groupCode: process.env.GROUP_CODE,
   signalingUrl: `${backendUrl.replace(/^http/, "ws")}/group`,
   simRetryMs: 5_000,
 };

@@ -20,7 +20,7 @@
       { "name": "contracts", "patterns": ["contracts/**"] },
       { "name": "ui", "patterns": ["ui/**"] },
       { "name": "backend", "patterns": ["backend/**"] },
-      { "name": "connector", "patterns": ["connector/**"] },
+      { "name": "connector", "patterns": ["desktop/connector/**"] },
       { "name": "desktop-main", "patterns": ["desktop/electron/**", "desktop/scripts/**", "desktop/vite.config.ts"] },
       { "name": "desktop-page", "patterns": ["desktop/src/**", "desktop/index.html"] },
       { "name": "frontend", "patterns": ["frontend/**"] }

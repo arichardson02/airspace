@@ -102,7 +102,14 @@ export default defineConfig({
   },
   overrides: [
     {
-      files: ["backend/**", "connector/**", "contracts/**", "desktop/electron/**", "**/scripts/**", "**/*.config.*"],
+      files: [
+        "backend/**",
+        "contracts/**",
+        "desktop/connector/**",
+        "desktop/electron/**",
+        "**/scripts/**",
+        "**/*.config.*",
+      ],
       env: { node: true },
     },
     {
@@ -122,9 +129,9 @@ export default defineConfig({
       env: { node: true },
     },
     {
-      // Console output is these files' log: the connector's shows in the terminal and the desktop app's console,
-      // and the migrate job's in the deploy log.
-      files: ["**/scripts/**", "connector/src/**", "backend/src/database/migrate.ts"],
+      // Console output is these files' log: the connector's shows in the desktop app's console and log file, and
+      // the migrate job's in the deploy log.
+      files: ["**/scripts/**", "desktop/connector/**", "backend/src/database/migrate.ts"],
       rules: {
         "no-console": "off",
       },

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "node:path";
 import { connectorCommandSchema } from "@fs-career/contracts";
-import { createConnector } from "../../connector/src/app/create.js";
+import { createConnector } from "../connector/app/create.js";
 import { logToFile } from "./log.js";
 
 // One copy at a time: a second connector would fight the first over the simulator and the co-op group.

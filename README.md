@@ -35,12 +35,11 @@ pnpm --filter desktop dev            # desktop app
   [connector](.claude/skills/connector/SKILL.md), [desktop](.claude/skills/desktop/SKILL.md),
   [design system](.claude/skills/design-system/SKILL.md), [infra and deploys](.claude/skills/infra/SKILL.md)
 
-| Package      | What it is                                                                |
-| ------------ | ------------------------------------------------------------------------- |
-| `backend/`   | NestJS API: auth, ingest, co-op signaling, Postgres via Drizzle           |
-| `frontend/`  | Next.js website: marketing page, sign-in pages, signed-in dashboard       |
-| `desktop/`   | Electron app pilots install; hosts the connector                          |
-| `connector/` | Simulator connector (SimConnect, sign-in, co-op); also runs in a terminal |
-| `contracts/` | Types and zod schemas shared by the backend, connector and desktop app    |
-| `ui/`        | Shared design: theme, Inter, buttons, fields, logo                        |
-| `infra/`     | Terraform for DigitalOcean                                                |
+| Package      | What it is                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| `backend/`   | NestJS API: auth, ingest, co-op signaling, Postgres via Drizzle                                |
+| `frontend/`  | Next.js website: marketing page, sign-in pages, signed-in dashboard                            |
+| `desktop/`   | Electron app pilots install; its connector talks to the simulator (SimConnect, sign-in, co-op) |
+| `contracts/` | Types and zod schemas shared by the backend and desktop app                                    |
+| `ui/`        | Shared design: theme, Inter, buttons, fields, logo                                             |
+| `infra/`     | Terraform for DigitalOcean                                                                     |

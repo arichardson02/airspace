@@ -2,7 +2,6 @@
 # each other with "workspace:*".
 packages:
   - backend
-  - connector
   - contracts
   - desktop
   - frontend

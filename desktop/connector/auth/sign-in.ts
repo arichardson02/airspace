@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -175,14 +174,6 @@ async function post<T>(
   if (!response.ok) return { ok: false, status: response.status, body: isOAuthError(json) ? json : {} };
   if (!isBody(json)) throw new Error("Sign-in failed: the backend sent an unexpected response");
   return { ok: true, status: response.status, body: json };
-}
-
-export function openBrowser(url: string): void {
-  if (process.platform !== "win32") return;
-  // explorer.exe hands a URL to the default browser without cmd's quoting rules.
-  spawn("explorer.exe", [url], { detached: true, stdio: "ignore" })
-    .on("error", () => {})
-    .unref();
 }
 
 async function loadToken(): Promise<string | undefined> {

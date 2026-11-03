@@ -36,21 +36,20 @@ Tool skill: `fallow` (dead code, duplication, boundaries and changed-code audits
 
 One pnpm workspace. Each package has its own `package.json`; packages depend on each other with `"workspace:*"`.
 
-| Package      | What it is                                                                      | Runs where           |
-| ------------ | ------------------------------------------------------------------------------- | -------------------- |
-| `backend/`   | NestJS API: sign-in (Better Auth), connector ingest, co-op signaling, Postgres  | App Platform, `/api` |
-| `frontend/`  | Next.js site: marketing page, sign-in pages, the signed-in app under `/app`     | App Platform, `/`    |
-| `desktop/`   | Electron app pilots install; runs the connector and shows its window            | Pilots' Windows PCs  |
-| `connector/` | The simulator connector: SimConnect, sign-in, backend client, co-op. Also a CLI | Inside `desktop/`    |
-| `contracts/` | Types and zod schemas shared by backend, connector and desktop                  | Library              |
-| `ui/`        | The shared design: theme tokens, Inter, buttons, fields, logo, panel            | Library              |
-| `infra/`     | Terraform for DigitalOcean (App Platform app, managed Postgres)                 | HCP Terraform        |
+| Package      | What it is                                                                     | Runs where           |
+| ------------ | ------------------------------------------------------------------------------ | -------------------- |
+| `backend/`   | NestJS API: sign-in (Better Auth), connector ingest, co-op signaling, Postgres | App Platform, `/api` |
+| `frontend/`  | Next.js site: marketing page, sign-in pages, the signed-in app under `/app`    | App Platform, `/`    |
+| `desktop/`   | Electron app pilots install; its `connector/` talks to the simulator           | Pilots' Windows PCs  |
+| `contracts/` | Types and zod schemas shared by backend and desktop                            | Library              |
+| `ui/`        | The shared design: theme tokens, Inter, buttons, fields, logo, panel           | Library              |
+| `infra/`     | Terraform for DigitalOcean (App Platform app, managed Postgres)                | HCP Terraform        |
 
 Fallow enforces the dependency direction (`boundaries` in `.fallowrc.json`):
 
 - `contracts` and `ui` import no other package.
-- `backend` and `connector` may use `contracts`; `frontend` may use `ui`.
-- `desktop/electron` (main process) may use `contracts` and `connector`; `desktop/src` (the window) may use
+- `backend` and `desktop/connector` may use `contracts`; `frontend` may use `ui`.
+- `desktop/electron` (main process) may use `contracts` and `desktop/connector`; `desktop/src` (the window) may use
   `contracts` and `ui`, never the connector or Node APIs. It talks to the main process only through
   `window.airspace`.
 - Flight data never goes through the server; co-op streams peer to peer.
@@ -84,15 +83,15 @@ that removed dependencies aren't referenced by name in config (as `@tailwindcss/
 ## Conventions
 
 - TypeScript everywhere, ESM, strict mode. Prettier: double quotes, 120 columns.
-- Commits use conventional messages scoped to the package: `feat(connector): …`, `fix(backend): …`.
+- Commits use conventional messages scoped to the package: `feat(desktop): …`, `fix(backend): …`.
 - Tests are scaffolding: write them to confirm a flow, then delete them. There's no committed test suite or
   `test` script.
 - Windows checkouts use CRLF in the working tree and LF in git; Prettier keeps whatever a file has.
 
 ## Quality gate
 
-`pnpm check` is the gate: a frozen-lockfile install, `format:check`, `lint`, the connector, desktop and ui
-typechecks, the backend and frontend builds, and `pnpm fallow` (dead code, duplicates and complexity, failing on
+`pnpm check` is the gate: a frozen-lockfile install, `format:check`, `lint`, the desktop (with its connector) and
+ui typechecks, the backend and frontend builds, and `pnpm fallow` (dead code, duplicates and complexity, failing on
 any finding). Run the narrowest relevant check while iterating and `pnpm check` before handing off.
 
 It runs in two places:

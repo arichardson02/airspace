@@ -15,5 +15,5 @@ description: How sign-in works across Airspace — Better Auth with email and pa
 - **Desktop app and connector:** sign in with a device code. The app shows a code, the pilot approves it at
   `airspace.club/device`, and the connector gets a session token (client ID `airspace-connector`) that it
   sends as `Authorization: Bearer`. It's saved in `%APPDATA%\Airspace\credentials.json`. The connector side is
-  `connector/src/auth/sign-in.ts`.
+  `desktop/connector/auth/sign-in.ts`.
 - Only the app pages need sign-in on the website. The marketing page stays public.

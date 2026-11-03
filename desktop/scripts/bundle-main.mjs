@@ -11,10 +11,10 @@ import manifest from "../package.json" with { type: "json" };
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const addonName = "node_datachannel.node";
 
-// pnpm keeps node-datachannel's Windows build beside it in the connector's store.
-export const addonPath = createRequire(
-  realpathSync(join(root, "../connector/node_modules/node-datachannel/package.json")),
-).resolve(`@node-datachannel/win32-x64-msvc/${addonName}`);
+// pnpm keeps node-datachannel's Windows build beside it in the store.
+export const addonPath = createRequire(realpathSync(join(root, "node_modules/node-datachannel/package.json"))).resolve(
+  `@node-datachannel/win32-x64-msvc/${addonName}`,
+);
 
 /**
  * node-datachannel finds its native addon relative to its own files, which a bundle moves. Load it from the

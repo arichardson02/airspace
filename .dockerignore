@@ -8,7 +8,5 @@
 .git
 infra
 # The workspace lockfile needs every package's package.json, but not these packages' code.
-connector/*
-!connector/package.json
 desktop/*
 !desktop/package.json

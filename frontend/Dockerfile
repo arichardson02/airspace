@@ -8,7 +8,6 @@ FROM base AS build
 # own dependencies (and ui) get installed.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json backend/
-COPY connector/package.json connector/
 COPY contracts/package.json contracts/
 COPY desktop/package.json desktop/
 COPY frontend/package.json frontend/

@@ -1,6 +1,5 @@
 // Development: serves the window's page from Vite (with hot reload), and rebuilds and restarts Electron
-// whenever the main process or the connector changes. The connector reads connector/.env, as it does
-// in the terminal.
+// whenever the main process or the connector changes. The connector reads desktop/.env.
 
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
@@ -27,7 +26,7 @@ function startElectron() {
   restarting = false;
   // Extra arguments go to Electron, e.g. pnpm dev --remote-debugging-port=9222.
   child = spawn(electron, [join(root, "dist/main/main.cjs"), ...process.argv.slice(2)], {
-    cwd: join(root, "../connector"),
+    cwd: root,
     env: { ...process.env, VITE_DEV_SERVER_URL: url },
     stdio: "inherit",
   });

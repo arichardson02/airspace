@@ -9,7 +9,7 @@
     "format:check": "prettier --check .",
     "fallow": "fallow dead-code && fallow dupes --fail-on-issues && fallow health --complexity --fail-on-issues",
     "typecheck": "tsc -p tsconfig.json",
-    "check": "pnpm install --frozen-lockfile && pnpm format:check && pnpm lint && pnpm typecheck && pnpm --filter connector --filter desktop --filter ui typecheck && pnpm --filter backend --filter frontend build && pnpm fallow",
+    "check": "pnpm install --frozen-lockfile && pnpm format:check && pnpm lint && pnpm typecheck && pnpm --filter desktop --filter ui typecheck && pnpm --filter backend --filter frontend build && pnpm fallow",
     "prepare": "node -e \"try{require('node:child_process').execFileSync('git',['config','core.hooksPath','.githooks'],{stdio:'ignore'})}catch{}\""
   },
   "packageManager": "pnpm@12.15.0",

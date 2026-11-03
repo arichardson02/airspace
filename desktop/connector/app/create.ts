@@ -1,5 +1,4 @@
 import { open, Protocol, SimConnectException, type SimConnectConnection } from "node-simconnect";
-import type { DeviceCode } from "../auth/sign-in.js";
 import { ensureSignedIn, signOut } from "../auth/sign-in.js";
 import { BackendClient } from "../backend-client.js";
 import { config } from "../config.js";
@@ -9,10 +8,6 @@ import { createStatus, type StatusStore } from "./status.js";
 
 export interface ConnectorOptions {
   openBrowser: (url: string) => void;
-  /** Joins this group whenever signed in with the simulator connected. */
-  autoJoinGroupCode?: string;
-  /** Called with each new sign-in code, besides showing it in the status. */
-  onCode?(code: DeviceCode): void;
 }
 
 interface WiredConnector {
@@ -27,15 +22,7 @@ export function createConnector(options: ConnectorOptions): WiredConnector {
   const connector = new Connector<SimConnectConnection>({
     status,
     simRetryMs: config.simRetryMs,
-    autoJoinGroupCode: options.autoJoinGroupCode,
-    signIn: (signal, onCode) =>
-      ensureSignedIn(config.backendUrl, {
-        signal,
-        onCode(code) {
-          onCode(code);
-          options.onCode?.(code);
-        },
-      }),
+    signIn: (signal, onCode) => ensureSignedIn(config.backendUrl, { signal, onCode }),
     signOut,
     openBrowser: options.openBrowser,
     async openSim() {
