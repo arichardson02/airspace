@@ -6,6 +6,9 @@ import { EventFlag, SimConnectConstants, type NotificationPriority, type SimConn
 /** Data definition ids (`addToDataDefinition`). 1-9 are the position tracker's. */
 export const DEFINITION = {
   flight: 10,
+  /** The follower's writes: everything in the air; on the ground, what leaves the aircraft on its wheels. */
+  flightAir: 11,
+  flightGround: 12,
   identity: 200,
   cockpit: 300,
   /** L:vars and simvars a profile writes but doesn't read. */

@@ -23,6 +23,20 @@ const INTERPOLATED_KEYS = [
 const MAX_EXTRAPOLATION_MS = 500;
 const HEADINGS = ["heading", "headingGyro"] as const;
 
+// On the ground below this the follower is left on its wheels (only its position is frozen), so its sim knows it's
+// on the ground. Faster, on the takeoff and landing roll, it follows exactly as in the air, so the rotation and the
+// flare match the flyer's. The gap between the two keeps it from flipping back and forth.
+const GROUND_ENTER_KTS = 25;
+const GROUND_LEAVE_KTS = 35;
+const KTS_PER_FPS = 0.592484;
+
+function followsOnGround(wasOnGround: boolean, state: FlightState): boolean {
+  // A missing value (NaN) counts as in the air, which follows as before.
+  if (!(state.onGround >= 0.5)) return false;
+  const speedKts = Math.hypot(state.velocityWorldX, state.velocityWorldZ) * KTS_PER_FPS;
+  return speedKts < (wasOnGround ? GROUND_LEAVE_KTS : GROUND_ENTER_KTS);
+}
+
 interface Received {
   time: number;
   state: FlightState;
@@ -52,11 +66,15 @@ export interface Follower {
   onFrame(): void;
 }
 
-export function createFollower(handle: SimConnectConnection, write: (state: FlightState) => void): Follower {
+export function createFollower(
+  handle: SimConnectConnection,
+  write: (state: FlightState, ground: boolean) => void,
+): Follower {
   FREEZE_EVENTS.forEach((name, i) => handle.mapClientEventToSimEvent(FIRST_FREEZE_EVENT + i, name));
 
-  const setFrozen = (frozen: boolean) => {
-    FREEZE_EVENTS.forEach((_, i) =>
+  // Position, then altitude and attitude, in FREEZE_EVENTS order.
+  const setFrozen = (position: boolean, altitudeAndAttitude: boolean) => {
+    [position, altitudeAndAttitude, altitudeAndAttitude].forEach((frozen, i) =>
       handle.transmitClientEvent(
         SimConnectConstants.OBJECT_ID_USER,
         FIRST_FREEZE_EVENT + i,
@@ -70,17 +88,28 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
   let interpolation: SnapshotInterpolation | undefined;
   let previous: Received | undefined;
   let latest: Received | undefined;
+  let onGround = false;
+
+  const follow = (state: FlightState) => {
+    const next = followsOnGround(onGround, state);
+    if (next !== onGround) {
+      onGround = next;
+      setFrozen(true, !onGround);
+    }
+    write(state, onGround);
+  };
 
   return {
     start() {
       // A fresh buffer, so states from an earlier turn following aren't blended in.
       interpolation = new SnapshotInterpolation();
       previous = latest = undefined;
-      setFrozen(true);
+      onGround = false;
+      setFrozen(true, true);
     },
     stop() {
       interpolation = undefined;
-      setFrozen(false);
+      setFrozen(false, false);
     },
     receive(time, state) {
       if (!interpolation) return;
@@ -106,7 +135,7 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
         // Only numbers go into the snapshots, so every value comes back out as one.
         const blended = snapshot.state[0];
         const state = buildFlightState((key) => Number(blended[key]));
-        write({
+        follow({
           ...state,
           pitch: Number(blended.p),
           bank: Number(blended.b),
@@ -120,7 +149,7 @@ export function createFollower(handle: SimConnectConnection, write: (state: Flig
       if (!previous || !latest) return;
       const target = SnapshotInterpolation.Now() - interpolation.timeOffset - interpolation.interpolationBuffer.get();
       const aheadMs = Math.min(target - latest.time, MAX_EXTRAPOLATION_MS);
-      if (aheadMs > 0) write(extrapolate(previous, latest, aheadMs));
+      if (aheadMs > 0) follow(extrapolate(previous, latest, aheadMs));
     },
   };
 }

@@ -15,7 +15,7 @@ It has no Electron imports of its own.
 - `auth/sign-in.ts` device-code sign-in; `backend-client.ts` batched ingest with retries; `track/` position
   tracking (currently switched off).
 - `group/` and `flight/`: shared-cockpit co-op over peer-to-peer WebRTC (`node-datachannel`). The pilot flying
-  streams their aircraft's state every frame; the other pilot's aircraft is frozen and follows it. Whoever moves
+  streams their aircraft's state every frame; the other pilot's aircraft is frozen and follows it. On the ground below 25 kt only its position is frozen and its altitude and attitude are left to the sim, so it stays on its wheels and its systems know it's on the ground (ground power, weight on wheels); faster, it follows exactly as in the air. Whoever moves
   their controls deliberately takes over, unless both are moving (dual input). `group/messages.ts` checks every
   message from the co-op server and the other pilot before it's used.
 - SimConnect setup (data definitions, event mappings) happens once per simulator connection, because it can't

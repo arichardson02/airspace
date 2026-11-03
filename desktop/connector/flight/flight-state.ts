@@ -9,7 +9,6 @@ import type { FlightState } from "@fs-career/contracts";
 
 import { DEFINITION, REQUEST } from "../sim-ids.js";
 
-const FLIGHT_DEFINITION = DEFINITION.flight;
 const FLIGHT_REQUEST = REQUEST.flight;
 
 // Read and written in this order. The same values YourControls copies; the velocities keep the
@@ -31,6 +30,25 @@ const FLIGHT_SIMVARS: [key: keyof FlightState, name: string, unit: string][] = [
   ["elevator", "ELEVATOR POSITION", "position"],
   ["aileron", "AILERON POSITION", "position"],
   ["rudder", "RUDDER POSITION", "position"],
+  // Read only: the follower uses it to choose how to write.
+  ["onGround", "SIM ON GROUND", "bool"],
+];
+
+// Written into a follower in the air: the whole state, with its position and attitude frozen.
+const AIR_KEYS = FLIGHT_SIMVARS.map(([key]) => key).filter((key) => key !== "onGround");
+// Written into a follower on the ground: its altitude and attitude stay with the sim, so its wheels stay on the
+// ground and the aircraft counts as on the ground (ground power, weight on wheels, warnings).
+const GROUND_KEYS: readonly (keyof FlightState)[] = [
+  "latitude",
+  "longitude",
+  "heading",
+  "headingGyro",
+  "velocityBodyZ",
+  "velocityWorldX",
+  "velocityWorldZ",
+  "elevator",
+  "aileron",
+  "rudder",
 ];
 
 export const FLIGHT_KEYS = FLIGHT_SIMVARS.map(([key]) => key);
@@ -53,6 +71,7 @@ const EMPTY_FLIGHT_STATE: FlightState = {
   elevator: 0,
   aileron: 0,
   rudder: 0,
+  onGround: 0,
 };
 
 /** Builds a state from `read`, which is called for each value in the order SimConnect sends them. */
@@ -63,8 +82,8 @@ export function buildFlightState(read: (key: keyof FlightState) => number): Flig
 }
 
 export interface FlightStateLink {
-  /** Writes a state into the user aircraft. */
-  write: (state: FlightState) => void;
+  /** Writes a state into the user aircraft: all of it, or on the `ground` only what keeps it on its wheels. */
+  write: (state: FlightState, ground: boolean) => void;
   /** Starts or stops reading the flight state every sim frame. */
   setReading(reading: boolean): void;
 }
@@ -74,9 +93,16 @@ export function connectFlightState(
   handle: SimConnectConnection,
   onFrame: (state: FlightState) => void,
 ): FlightStateLink {
-  for (const [, name, unit] of FLIGHT_SIMVARS) {
-    handle.addToDataDefinition(FLIGHT_DEFINITION, name, unit, SimConnectDataType.FLOAT64);
-  }
+  const simvars = new Map(FLIGHT_SIMVARS.map(([key, name, unit]) => [key, { name, unit }]));
+  const define = (definition: number, keys: readonly (keyof FlightState)[]) => {
+    for (const key of keys) {
+      const simvar = simvars.get(key);
+      if (simvar) handle.addToDataDefinition(definition, simvar.name, simvar.unit, SimConnectDataType.FLOAT64);
+    }
+  };
+  define(DEFINITION.flight, FLIGHT_KEYS);
+  define(DEFINITION.flightAir, AIR_KEYS);
+  define(DEFINITION.flightGround, GROUND_KEYS);
 
   handle.on("simObjectData", (sample) => {
     if (sample.requestID !== FLIGHT_REQUEST) return;
@@ -86,19 +112,23 @@ export function connectFlightState(
 
   const buffer = new RawBuffer(FLIGHT_SIMVARS.length * 8);
   return {
-    write(state) {
+    write(state, ground) {
       buffer.clear();
-      for (const [key] of FLIGHT_SIMVARS) buffer.writeFloat64(state[key]);
-      handle.setDataOnSimObject(FLIGHT_DEFINITION, SimConnectConstants.OBJECT_ID_USER, {
-        buffer,
-        arrayCount: 0,
-        tagged: false,
-      });
+      for (const key of ground ? GROUND_KEYS : AIR_KEYS) buffer.writeFloat64(state[key]);
+      handle.setDataOnSimObject(
+        ground ? DEFINITION.flightGround : DEFINITION.flightAir,
+        SimConnectConstants.OBJECT_ID_USER,
+        {
+          buffer,
+          arrayCount: 0,
+          tagged: false,
+        },
+      );
     },
     setReading(reading) {
       handle.requestDataOnSimObject(
         FLIGHT_REQUEST,
-        FLIGHT_DEFINITION,
+        DEFINITION.flight,
         SimConnectConstants.OBJECT_ID_USER,
         reading ? SimConnectPeriod.SIM_FRAME : SimConnectPeriod.NEVER,
       );

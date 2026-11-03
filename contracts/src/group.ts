@@ -37,10 +37,12 @@ export interface FlightState {
   elevator: number;
   aileron: number;
   rudder: number;
+  /** 1 while the aircraft is on the ground (SIM ON GROUND), else 0. */
+  onGround: number;
 }
 
 /** Bumped whenever the co-op messages change in a way an older connector can't follow. */
-export const COOP_PROTOCOL = 2;
+export const COOP_PROTOCOL = 3;
 
 /** One cockpit control's value. `seq` orders changes to the same control; the higher one wins. */
 export interface CockpitValue {
