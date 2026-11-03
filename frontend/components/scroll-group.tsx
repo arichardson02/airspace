@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useRef, type ReactElement, type ReactNode } from "react";
 import { motion, useMotionValue, useScroll, useTransform, type MotionValue } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 /** One edge of a useScroll offset, for example "start 92%". */
 type Edge = NonNullable<Parameters<typeof useScroll>[0]>["offset"] extends (infer T)[] | undefined ? T : never;

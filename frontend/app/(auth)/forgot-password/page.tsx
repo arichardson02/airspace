@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import { ArrowRight } from "lucide-react";
-import { ActionButton } from "@/components/button";
+import { ActionButton } from "@fs-career/ui/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, formText } from "@/components/auth/field";
+import { Field, FormMessage } from "@fs-career/ui/field";
+import { formText } from "@/lib/forms";
 import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage(): ReactElement {
     // Worded the same whether or not the email has an account, so it can't be used to look one up.
     return (
       <AuthCard
-        title="Check your inbox"
+        title="Check Your Inbox"
         subtitle="If that email has an Airspace account, a link to choose a new password is on its way."
         footer={footer}
       >
@@ -47,9 +48,9 @@ export default function ForgotPasswordPage(): ReactElement {
   }
 
   return (
-    <AuthCard title="Reset your password" subtitle="Enter your email and we'll send you a link." footer={footer}>
+    <AuthCard title="Reset Your Password" subtitle="Enter your email and we'll send you a link." footer={footer}>
       <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
-        <Field label="Email" name="email" type="email" autoComplete="email" required />
+        <Field label="Email" name="email" type="email" autoComplete="email" placeholder="pilot@example.com" required />
         {error !== undefined && <FormMessage>{error}</FormMessage>}
         <ActionButton type="submit" variant="paper" disabled={pending} className="mt-1 w-full">
           {pending ? "Sending…" : "Send Link"}

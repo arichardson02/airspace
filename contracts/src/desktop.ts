@@ -47,6 +47,8 @@ export interface ConnectorStatus {
 export const connectorCommandSchema = z.discriminatedUnion("type", [
   // Opens the sign-in page for the current code in the browser.
   z.object({ type: z.literal("open-sign-in") }),
+  // Opens the pilot's dashboard on the website in the browser.
+  z.object({ type: z.literal("open-website") }),
   z.object({ type: z.literal("retry-sign-in") }),
   z.object({ type: z.literal("sign-out") }),
   z.object({ type: z.literal("join-group"), groupCode: z.string() }),

@@ -3,7 +3,7 @@ import { Suspense, type ReactElement } from "react";
 import { requireUser } from "@/lib/session";
 import { Dashboard } from "./dashboard";
 
-export const metadata: Metadata = { title: "Dashboard · Airspace" };
+export const metadata: Metadata = { title: "Airspace · Dashboard" };
 
 export default function AppPage(): ReactElement {
   return (

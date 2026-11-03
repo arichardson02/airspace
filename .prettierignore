@@ -7,8 +7,9 @@ backend/drizzle/
 **/pnpm-lock.yaml
 **/next-env.d.ts
 infra/
-# Generated map data (frontend/scripts).
-frontend/lib/world-dots.json
+# Generated map data (ui/scripts).
+ui/src/motion/world-dots.json
+ui/src/map/land-50m.json
 # Vendored upstream files stay as published.
 tools/oxlint/anti-slop/
 .claude/skills/fallow/

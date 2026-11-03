@@ -25,6 +25,8 @@ export function createConnector(options: ConnectorOptions): WiredConnector {
     signIn: (signal, onCode) => ensureSignedIn(config.backendUrl, { signal, onCode }),
     signOut,
     openBrowser: options.openBrowser,
+    // The website and the API share an origin; the API lives under /api.
+    dashboardUrl: `${new URL(config.backendUrl).origin}/app`,
     async openSim() {
       // KittyHawk is the lowest protocol MSFS 2020 supports; MSFS 2024 accepts it too.
       const { recvOpen, handle } = await open(config.appName, Protocol.KittyHawk);

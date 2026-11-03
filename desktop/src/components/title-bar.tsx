@@ -1,17 +1,14 @@
 import type { ReactElement } from "react";
 import { Minus, X } from "lucide-react";
-import { Mark } from "@fs-career/ui/mark";
+import { Logo } from "@fs-career/ui/logo";
 import { bridge } from "../lib/connector";
 
-// The window has no system frame; this bar moves it and holds its buttons, styled like the app windows on
-// the marketing page.
+// The window has no system frame; this bar moves it and holds its buttons. It floats over the screen so
+// the screen centres on the whole window. The lockup is the same one the website's navbar uses.
 export function TitleBar(): ReactElement {
   return (
-    <header className="drag flex h-10 shrink-0 items-center justify-between border-b border-paper/10 pl-4">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-paper/70">
-        <Mark className="h-3.5 w-auto" />
-        Airspace
-      </div>
+    <header className="drag absolute inset-x-0 top-0 z-20 flex h-10 items-center justify-between border-b border-paper/10 bg-ink/60 pl-4 backdrop-blur-md">
+      <Logo className="h-4" />
       <div className="no-drag flex h-full">
         <button
           type="button"

@@ -7,35 +7,51 @@
   "exports": {
     "./theme.css": "./theme.css",
     "./fonts/*": "./fonts/*",
-    "./button": "./src/button.tsx",
+    "./button": "./src/primitives/button.tsx",
+    "./field": "./src/primitives/field.tsx",
+    "./panel": "./src/primitives/panel.tsx",
+    "./logo": "./src/brand/logo.tsx",
+    "./mark": "./src/brand/mark.tsx",
     "./cn": "./src/cn.ts",
-    "./field": "./src/field.tsx",
-    "./logo": "./src/logo.tsx",
-    "./mark": "./src/mark.tsx",
-    "./panel": "./src/panel.tsx"
+    "./flight-map": "./src/motion/flight-map.tsx",
+    "./intro": "./src/motion/intro.tsx",
+    "./motion": "./src/motion/motion.ts",
+    "./shell": "./src/shell/index.ts",
+    "./instruments": "./src/instruments/index.ts",
+    "./map": "./src/map/index.ts"
   },
   "files": [
-    "theme.css",
     "fonts",
-    "src"
+    "src",
+    "theme.css"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts",
+    "world-dots": "node scripts/world-dots.mts",
+    "basemap": "node scripts/basemap.mts",
+    "airports": "node scripts/airports.mts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "tailwind-merge": "^3.7.0"
+    "d3-geo": "^3.1.1",
+    "maplibre-gl": "6.14.0",
+    "tailwind-merge": "^3.7.0",
+    "topojson-client": "^3.1.0"
   },
   "peerDependencies": {
     "framer-motion": "^14.6.0",
     "react": "^19.3.0"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/react": "^19",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
     "framer-motion": "^14.6.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "world-atlas": "^2.0.2"
   },
   "packageManager": "pnpm@12.15.0"
 }

@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // The shared design package ships TypeScript source.
   transpilePackages: ["@fs-career/ui"],
-  // The repo-wide AGENTS.md carries the Next.js guidance; don't let `next dev` add a second one here.
+  // frontend/CLAUDE.md carries the Next.js guidance; don't let `next dev` add an AGENTS.md here.
   agentRules: false,
   cacheComponents: true,
   partialPrefetching: true,

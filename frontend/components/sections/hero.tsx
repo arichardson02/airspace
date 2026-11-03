@@ -4,8 +4,8 @@ import type { ReactElement } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/button";
-import { FlightMap } from "@/components/flight-map";
-import { INTRO_SECONDS } from "@/components/intro";
+import { FlightMap } from "@fs-career/ui/flight-map";
+import { INTRO_SECONDS } from "@fs-career/ui/intro";
 import { siteConfig } from "@/config/site";
 
 const ease = [0.22, 1, 0.36, 1] as const;

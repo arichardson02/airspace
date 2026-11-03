@@ -47,7 +47,7 @@ export function Cta(): ReactElement {
             <Words text="Start Flying" range={[0.2, 0.75]} className="justify-center" />
           </h2>
           <Slide from="bottom" range={[0.5, 0.9]}>
-            <p className="mt-6 max-w-sm text-lg text-paper/60 sm:text-xl">Free while Airspace is in early access.</p>
+            <p className="mt-6 max-w-sm text-lg text-paper/60 sm:text-xl">Free during early access.</p>
           </Slide>
           <Slide from="bottom" range={[0.6, 1]}>
             <Button href="/signup" variant="paper" className="mt-10">

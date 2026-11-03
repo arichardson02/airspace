@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactElement } from "react";
 import { ArrowRight } from "lucide-react";
-import { ActionButton, Button } from "@/components/button";
+import { ActionButton } from "@fs-career/ui/button";
+import { Button } from "@/components/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, formText } from "@/components/auth/field";
+import { Field, FormMessage } from "@fs-career/ui/field";
+import { formText } from "@/lib/forms";
 import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
@@ -23,7 +25,7 @@ export function ResetForm(): ReactElement {
   if (token === null || token === "" || (linkError !== null && linkError !== "")) {
     return (
       <AuthCard
-        title="Link expired"
+        title="Link Expired"
         subtitle="Password reset links work once, for one hour. Ask for a new one."
         footer={
           <Link href="/login" className="font-medium text-paper hover:underline">
@@ -41,7 +43,7 @@ export function ResetForm(): ReactElement {
 
   if (done) {
     return (
-      <AuthCard title="Password changed" subtitle="Sign in with your new password.">
+      <AuthCard title="Password Changed" subtitle="Sign in with your new password.">
         <Button href="/login" variant="paper" className="w-full">
           Sign In
           <ArrowRight className="size-4" />
@@ -68,10 +70,10 @@ export function ResetForm(): ReactElement {
   };
 
   return (
-    <AuthCard title="Choose a new password">
+    <AuthCard title="Choose a New Password">
       <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field
-          label="New password"
+          label="New Password"
           name="password"
           type="password"
           autoComplete="new-password"
@@ -79,7 +81,14 @@ export function ResetForm(): ReactElement {
           minLength={MIN_PASSWORD_LENGTH}
           placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
         />
-        <Field label="Confirm password" name="confirm" type="password" autoComplete="new-password" required />
+        <Field
+          label="Confirm Password"
+          placeholder="Same as above"
+          name="confirm"
+          type="password"
+          autoComplete="new-password"
+          required
+        />
         {error !== undefined && <FormMessage>{error}</FormMessage>}
         <ActionButton type="submit" variant="paper" disabled={pending} className="mt-1 w-full">
           {pending ? "Saving…" : "Change Password"}

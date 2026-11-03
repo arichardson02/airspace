@@ -9,6 +9,8 @@
   /* Branding/brand.toml. Airspace is monotone: emphasis is weight, size or inversion,
      never a second color. */
   --color-ink: #0b0d10;
+  /* One tone step up from ink, for every other section of a long page. */
+  --color-ink-2: #181b21;
   --color-paper: #f6f7f9;
   --color-muted: #8a8f98;
   --color-line: #22262c;
@@ -17,7 +19,161 @@
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Three depths, lit from above. `surface` is a card raised off the page; `well` is sunk into a card (rows, tracks,
+   fields, readouts); `surface-button` is a key raised off either (buttons, the selected tab in a track). */
+@utility surface {
+  background-image: linear-gradient(180deg, rgb(246 247 249 / 0.055), rgb(246 247 249 / 0.025));
+  border: 1px solid rgb(246 247 249 / 0.08);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 1px 2px rgb(0 0 0 / 0.5),
+    0 20px 40px -24px rgb(0 0 0 / 0.9);
+}
+
+@utility well {
+  background-color: rgb(0 0 0 / 0.26);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px rgb(0 0 0 / 0.3),
+    0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+@utility surface-button {
+  background-image: linear-gradient(180deg, rgb(246 247 249 / 0.12), rgb(246 247 249 / 0.06));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 0 0 1px rgb(0 0 0 / 0.45),
+    0 1px 2px rgb(0 0 0 / 0.5);
+}
+
+/* The paper key, for the one main action: the same quiet depth as `surface-button`, in paper. A lit top edge, a
+   faintly shaded foot, a fine dark rim and a soft shadow; hover brightens it with a faint halo. */
+@utility surface-paper {
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  background-image: linear-gradient(180deg, #ffffff, #e9ebee);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -1px 0 rgb(11 13 16 / 0.1),
+    0 0 0 1px rgb(0 0 0 / 0.5),
+    0 2px 6px -1px rgb(0 0 0 / 0.5);
+  transition: box-shadow 200ms var(--ease-out-quint);
+
+  &:hover {
+    background-image: linear-gradient(180deg, #ffffff, #f1f2f4);
+    box-shadow:
+      inset 0 1px 0 #ffffff,
+      inset 0 -1px 0 rgb(11 13 16 / 0.1),
+      0 0 0 1px rgb(0 0 0 / 0.5),
+      0 4px 12px -2px rgb(0 0 0 / 0.5),
+      0 0 20px -4px rgb(246 247 249 / 0.25);
+  }
+}
+
+/* A faint light that travels round an element's border, for something waiting on the pilot. Give it a radius. */
+@property --trace-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@utility trace {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: conic-gradient(
+      from var(--trace-angle),
+      transparent 0deg,
+      transparent 280deg,
+      rgb(246 247 249 / 0.35) 340deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: trace 3.2s linear infinite;
+  }
+}
+@keyframes trace {
+  to {
+    --trace-angle: 360deg;
+  }
+}
+
+/* Frosts a card's art where it runs under the card's text and clears toward the art's own side, so the text always
+   sits on calm ground. Give it the text column's width; art that never reaches the text is untouched. */
+@utility text-veil {
+  background-color: rgb(11 13 16 / 0.18);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to right, black 55%, transparent);
+  mask-image: linear-gradient(to right, black 55%, transparent);
+}
+
+/* Screen changes through React's <ViewTransition> (`screenTransition` and `logoTransition` in motion.ts). */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.screen-exit) {
+  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both screen-exit;
+}
+::view-transition-new(.screen-enter) {
+  animation: 380ms var(--ease-out-quint) 60ms both screen-enter;
+}
+::view-transition-group(.logo-morph),
+::view-transition-old(.logo-morph),
+::view-transition-new(.logo-morph) {
+  animation-duration: 700ms;
+  animation-timing-function: var(--ease-out-quint);
+}
+@keyframes screen-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(4px);
+  }
+}
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
 @utility display {
   @apply font-semibold tracking-display;
   text-wrap: balance;
+}
+
+/* A placeholder for something still loading: a sunk block with a soft light sweeping across it. */
+@utility skeleton {
+  background-color: rgb(246 247 249 / 0.06);
+  background-image: linear-gradient(100deg, transparent 30%, rgb(246 247 249 / 0.08) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: skeleton 1.6s ease-in-out infinite;
+}
+@keyframes skeleton {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
 }

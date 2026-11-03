@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactElement } from "react";
 import { motion, useSpring, useTransform } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 interface CounterProps {
   value: number;

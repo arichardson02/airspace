@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import Link from "next/link";
-import { FlightMap } from "@/components/flight-map";
-import { Logo } from "@/components/logo";
+import { FlightMap } from "@fs-career/ui/flight-map";
+import { Logo } from "@fs-career/ui/logo";
 
 // Sign-in pages sit on the hero's ink and route map, so they read as the same place.
 export default function AuthLayout({ children }: { children: ReactNode }): ReactElement {
@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: ReactNode }): React
 
       <header className="relative mx-auto flex h-14 w-full max-w-7xl items-center px-5">
         <Link href="/" aria-label="Airspace home" className="w-fit">
-          <Logo inverted className="h-5" />
+          <Logo className="h-5" />
         </Link>
       </header>
 

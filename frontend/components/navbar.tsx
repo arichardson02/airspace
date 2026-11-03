@@ -4,53 +4,49 @@ import Link from "next/link";
 import { useMemo, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { Logo } from "@fs-career/ui/logo";
+import { Button } from "@/components/button";
+import { SectionLink } from "@/components/section-link";
 import { sections } from "@/config/site";
 import { useActiveSection } from "@/lib/use-active-section";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 const NAV_HEIGHT = 56;
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function Navbar(): ReactElement {
   const ids = useMemo(() => sections.map((section) => section.id), []);
-  // The bar is the opposite of the section under it, so it always stands out: paper over
-  // ink, ink over paper. The highlighted link follows the section showing the most.
-  const { under, dominant } = useActiveSection(ids, NAV_HEIGHT);
-  const ink = (sections.find((section) => section.id === under)?.theme ?? "ink") === "paper";
+  // The page is ink throughout, so the bar is dark glass with a hairline under it. The highlighted link follows the
+  // section showing the most.
+  const { dominant } = useActiveSection(ids, NAV_HEIGHT);
   const [open, setOpen] = useState(false);
 
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 backdrop-blur-xl transition-colors duration-150",
-        ink ? "bg-ink/85 text-paper" : "bg-paper/85 text-ink",
-      )}
-    >
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-paper/6 bg-ink/75 text-paper backdrop-blur-xl">
       <nav
         aria-label="Main"
         className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center px-5 md:grid-cols-[1fr_auto_1fr]"
       >
-        <Link href="#home" aria-label="Airspace home" className="w-fit">
-          <Logo inverted={ink} className="h-5" />
-        </Link>
+        <SectionLink id="home" aria-label="Airspace home" className="w-fit">
+          <Logo className="h-5" />
+        </SectionLink>
 
-        <ul className="hidden items-center gap-0.5 md:flex">
+        <ul className="well hidden items-center gap-0.5 rounded-full p-0.5 md:flex">
           {sections.map((section) => {
             const active = section.id === dominant;
             return (
               <li key={section.id}>
-                <Link
-                  href={`#${section.id}`}
+                <SectionLink
+                  id={section.id}
                   aria-current={active ? "true" : undefined}
                   className={cn(
                     "block rounded-full px-3 py-1.5 text-[13px] font-medium transition-[background-color,opacity] duration-200",
                     active ? "opacity-100" : "opacity-55 hover:opacity-100",
-                    active && (ink ? "bg-paper/12" : "bg-ink/8"),
+                    active && "surface-button",
                   )}
                 >
                   {section.label}
-                </Link>
+                </SectionLink>
               </li>
             );
           })}
@@ -60,17 +56,9 @@ export function Navbar(): ReactElement {
           <Link href="/login" className="text-[13px] font-medium opacity-55 transition-opacity hover:opacity-100">
             Sign In
           </Link>
-          <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}>
-            <Link
-              href="/signup"
-              className={cn(
-                "block rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors",
-                ink ? "bg-paper text-ink hover:bg-white" : "bg-ink text-paper hover:bg-line",
-              )}
-            >
-              Get Started
-            </Link>
-          </motion.div>
+          <Button href="/signup" variant="paper" size="sm">
+            Get Started
+          </Button>
         </div>
 
         <button
@@ -97,23 +85,20 @@ export function Navbar(): ReactElement {
           >
             <div className="flex flex-col px-5 pb-5">
               {sections.map((section) => (
-                <Link
+                <SectionLink
                   key={section.id}
-                  href={`#${section.id}`}
+                  id={section.id}
                   onClick={() => {
                     setOpen(false);
                   }}
                   className={cn("py-2.5 text-base font-medium", section.id !== dominant && "opacity-55")}
                 >
                   {section.label}
-                </Link>
+                </SectionLink>
               ))}
               <Link
                 href="/signup"
-                className={cn(
-                  "mt-3 rounded-full py-2.5 text-center text-sm font-medium",
-                  ink ? "bg-paper text-ink" : "bg-ink text-paper",
-                )}
+                className="mt-3 rounded-full bg-paper py-2.5 text-center text-sm font-medium text-ink"
               >
                 Get Started
               </Link>

@@ -7,7 +7,7 @@ import { RollStack } from "@/components/roll-stack";
 import { SCENE_MS, steps } from "@/components/scenes";
 import { ScrollGroup, Slide, Words } from "@/components/scroll-group";
 import { useTick } from "@/lib/use-tick";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -21,7 +21,11 @@ export function Tour(): ReactElement {
   const current = picked ?? tick % steps.length;
 
   return (
-    <section id="tour" aria-labelledby="tour-title" className="flex min-h-screen items-center bg-ink text-paper">
+    <section
+      id="tour"
+      aria-labelledby="tour-title"
+      className="flex min-h-screen items-center overflow-x-clip bg-ink text-paper"
+    >
       <ScrollGroup className="mx-auto w-full max-w-7xl px-5 py-24 sm:py-32" to="start 30%">
         <h2 id="tour-title" className="display text-4xl sm:text-5xl md:text-6xl">
           <Words text="Tour" range={[0, 0.4]} />

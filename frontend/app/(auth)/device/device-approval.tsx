@@ -2,9 +2,9 @@
 
 import { useState, type ReactElement, type SubmitEvent } from "react";
 import { ArrowRight, Check, ShieldAlert } from "lucide-react";
-import { ActionButton } from "@/components/button";
+import { ActionButton } from "@fs-career/ui/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage } from "@/components/auth/field";
+import { Field, FormMessage } from "@fs-career/ui/field";
 import { authClient } from "@/lib/auth-client";
 
 /** Codes are shown as ABCD-EFGH but matched without punctuation, in upper case. */
@@ -52,8 +52,8 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
 
   if (step === "approved") {
     return (
-      <AuthCard title="Connector signed in" subtitle="You can close this tab and go back to the connector.">
-        <div className="flex items-center gap-3 rounded-xl bg-paper/6 px-4 py-3 text-sm text-paper/75">
+      <AuthCard title="Airspace Signed In" subtitle="You can close this tab and go back to the app.">
+        <div className="flex items-center gap-3 well rounded-xl px-4 py-3 text-sm text-paper/75">
           <Check className="size-4 shrink-0" strokeWidth={3} />
           Signed in as {email}
         </div>
@@ -63,7 +63,7 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
 
   if (step === "denied") {
     return (
-      <AuthCard title="Request denied" subtitle="The connector wasn't signed in. You can close this tab.">
+      <AuthCard title="Request Denied" subtitle="The app wasn't signed in. You can close this tab.">
         <FormMessage tone="info">If you didn&apos;t start this, nothing else is needed.</FormMessage>
       </AuthCard>
     );
@@ -71,7 +71,7 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
 
   if (step === "enter") {
     return (
-      <AuthCard title="Connect the connector" subtitle="Enter the code the Airspace Connector is showing.">
+      <AuthCard title="Sign In the App" subtitle="Enter the code the Airspace app is showing.">
         <form onSubmit={enter} className="flex flex-col gap-5">
           <Field
             label="Code"
@@ -99,7 +99,7 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
 
   return (
     <AuthCard
-      title="Sign in the connector?"
+      title="Sign In the App?"
       subtitle={
         <>
           The Airspace Connector wants to sign in as <span className="font-medium text-paper">{email}</span>. It will
@@ -107,7 +107,7 @@ export function DeviceApproval({ email, initialCode }: { email: string; initialC
         </>
       }
     >
-      <div className="rounded-xl bg-paper/6 px-4 py-5 text-center">
+      <div className="well rounded-xl px-4 py-5 text-center">
         <p className="text-xs text-paper/50">Check that the connector shows</p>
         <p className="mt-1.5 font-mono text-2xl font-medium tracking-[0.2em]">{format(code)}</p>
       </div>

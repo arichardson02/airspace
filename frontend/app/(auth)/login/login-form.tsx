@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactElement } from "react";
 import { ArrowRight } from "lucide-react";
-import { ActionButton } from "@/components/button";
+import { ActionButton } from "@fs-career/ui/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
+import { Field, FormMessage } from "@fs-career/ui/field";
+import { formText, safeRedirect } from "@/lib/forms";
 import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
@@ -48,7 +49,7 @@ export function LoginForm(): ReactElement {
 
   return (
     <AuthCard
-      title="Welcome back"
+      title="Welcome Back"
       subtitle="Sign in to pick up where you parked."
       footer={
         <>
@@ -65,6 +66,7 @@ export function LoginForm(): ReactElement {
       <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field
           label="Email"
+          placeholder="pilot@example.com"
           name="email"
           type="email"
           autoComplete="email"
@@ -82,7 +84,7 @@ export function LoginForm(): ReactElement {
           required
           aside={
             <Link href="/forgot-password" className="text-xs text-paper/50 transition-colors hover:text-paper">
-              Forgot password?
+              Forgot Password?
             </Link>
           }
         />

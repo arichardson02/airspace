@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import type { ReactElement, ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 

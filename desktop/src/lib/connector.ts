@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import type { ConnectorCommand, ConnectorStatus } from "@fs-career/contracts";
 
 /** What electron/preload.ts exposes to the page. */
@@ -23,7 +23,12 @@ export function useConnector(): ConnectorStatus | undefined {
   const [status, setStatus] = useState<ConnectorStatus>();
 
   useEffect(() => {
-    const stop = bridge().onStatus(setStatus);
+    // Updates run as transitions, so a status that swaps the screen (signing in or out) animates the swap.
+    const stop = bridge().onStatus((next) => {
+      startTransition(() => {
+        setStatus(next);
+      });
+    });
     // A status pushed while this was loading wins over the initial fetch.
     async function loadInitial(): Promise<void> {
       const initial = await bridge().status();

@@ -1,9 +1,7 @@
-import Link from "next/link";
 import type { ReactElement } from "react";
-import { Mark } from "@/components/mark";
+import { Mark } from "@fs-career/ui/mark";
+import { SectionLink } from "@/components/section-link";
 import { sections, siteConfig } from "@/config/site";
-
-const links = sections.map((section) => ({ label: section.label, href: `#${section.id}` }));
 
 // Discord's own mark, so the pill reads as Discord and not as another page.
 function DiscordIcon() {
@@ -16,16 +14,20 @@ function DiscordIcon() {
 
 export function Footer(): ReactElement {
   return (
-    <footer className="bg-paper text-ink">
+    <footer className="border-t border-paper/6 bg-ink text-paper">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-3 text-xs text-muted">
-          <Mark className="h-5 w-auto text-ink" />© 2026 Airspace
+          <Mark className="h-5 w-auto text-paper" />© 2026 Airspace
         </p>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className="text-sm text-muted transition-colors hover:text-ink">
-              {link.label}
-            </Link>
+          {sections.map((section) => (
+            <SectionLink
+              key={section.id}
+              id={section.id}
+              className="text-sm text-muted transition-colors hover:text-paper"
+            >
+              {section.label}
+            </SectionLink>
           ))}
           <a
             href={siteConfig.discord}

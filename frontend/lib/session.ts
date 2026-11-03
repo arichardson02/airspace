@@ -35,7 +35,7 @@ function isSession(body: unknown): body is Session {
  * The signed-in user, checked with the backend once per request. It reads the request's
  * cookies, so call it inside a <Suspense> boundary.
  */
-export const getCurrentUser = cache(async (): Promise<User | null> => {
+const getCurrentUser = cache(async (): Promise<User | null> => {
   const response = await fetch(`${backendUrl}/api/auth/get-session`, {
     headers: { cookie: (await cookies()).toString() },
     cache: "no-store",

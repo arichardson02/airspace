@@ -5,8 +5,6 @@ import type { ReactElement, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { buttonClass, press, type ButtonSize, type ButtonVariant } from "@fs-career/ui/button";
 
-export { ActionButton } from "@fs-career/ui/button";
-
 interface ButtonProps {
   href: string;
   children: ReactNode;

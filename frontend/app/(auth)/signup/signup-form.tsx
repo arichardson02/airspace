@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactElement } from "react";
 import { ArrowRight, Mail } from "lucide-react";
-import { ActionButton } from "@/components/button";
+import { ActionButton } from "@fs-career/ui/button";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Field, FormMessage, formText, safeRedirect } from "@/components/auth/field";
+import { Field, FormMessage } from "@fs-career/ui/field";
+import { formText, safeRedirect } from "@/lib/forms";
 import { useAuthForm } from "@/components/auth/use-auth-form";
 import { authClient } from "@/lib/auth-client";
 
@@ -41,7 +42,7 @@ export function SignupForm(): ReactElement {
   if (sentTo !== undefined && sentTo !== "") {
     return (
       <AuthCard
-        title="Check your inbox"
+        title="Check Your Inbox"
         subtitle={
           <>
             We sent a link to <span className="font-medium text-paper">{sentTo}</span>. Open it to confirm your email
@@ -54,7 +55,7 @@ export function SignupForm(): ReactElement {
           </Link>
         }
       >
-        <div className="flex items-center gap-3 rounded-xl bg-paper/6 px-4 py-3 text-sm text-paper/70">
+        <div className="flex items-center gap-3 well rounded-xl px-4 py-3 text-sm text-paper/70">
           <Mail className="size-4 shrink-0" />
           It can take a minute. Check spam if it doesn&apos;t show up.
         </div>
@@ -64,8 +65,8 @@ export function SignupForm(): ReactElement {
 
   return (
     <AuthCard
-      title="Create your account"
-      subtitle="Free while Airspace is in early access."
+      title="Create Your Account"
+      subtitle="Free during early access."
       footer={
         <>
           Already flying with us?{" "}
@@ -80,14 +81,14 @@ export function SignupForm(): ReactElement {
     >
       <form onSubmit={handleSubmit(send)} className="flex flex-col gap-5">
         <Field
-          label="Pilot name"
+          label="Pilot Name"
           name="name"
           autoComplete="nickname"
           required
           maxLength={40}
-          placeholder="What your crew calls you"
+          placeholder="Mara Kovac"
         />
-        <Field label="Email" name="email" type="email" autoComplete="email" required />
+        <Field label="Email" name="email" type="email" autoComplete="email" placeholder="pilot@example.com" required />
         <Field
           label="Password"
           name="password"

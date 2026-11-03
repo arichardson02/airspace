@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Plane } from "lucide-react";
 import { Counter } from "@/components/counter";
 import { usePhases } from "@/lib/use-phases";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
 
 // The five Tour scenes, each a page of the app that plays through its states while
 // `active` and then holds. Remount one to replay it from the start.
@@ -48,7 +48,7 @@ function At({
 
 function Bar({ to, duration = 1 }: { to: number; duration?: number }) {
   return (
-    <div className="h-1 overflow-hidden rounded-full bg-paper/15">
+    <div className="well h-1.5 overflow-hidden rounded-full">
       <motion.div
         animate={{ scaleX: to }}
         transition={{ duration, ease }}
@@ -68,7 +68,7 @@ function Live() {
 }
 
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-xl bg-paper/6 px-4 py-3", className)}>{children}</div>;
+  return <div className={cn("well rounded-xl px-4 py-3", className)}>{children}</div>;
 }
 
 function Title({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
@@ -80,8 +80,8 @@ function Title({ children, aside }: { children: ReactNode; aside?: ReactNode }) 
   );
 }
 
-// 1. Download the setup, install it, and the tray app finds the sim. Mirrors what the
-// connector does: it signs in, waits for SimConnect, says hello, then streams position.
+// 1. Download the setup, install it, and the app finds the sim. Mirrors what the connector does: it signs in, waits
+// for SimConnect, then follows the flight.
 const installPhases = [1600, 1800, 1500, 1300] as const;
 
 function InstallScene({ active }: { active: boolean }) {
@@ -92,11 +92,11 @@ function InstallScene({ active }: { active: boolean }) {
       <Title aside="Windows 10 and 11">Download</Title>
       <Panel>
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">airspace-connector-setup.exe</span>
+          <span className="font-medium">Airspace Setup.exe</span>
           <span className="text-xs text-paper/60">
             {phase === 0 ? (
               <>
-                <Counter value={active ? 4.2 : 0} decimals={1} /> of 4.2 MB
+                <Counter value={active ? 86 : 0} /> of 86 MB
               </>
             ) : (
               "Downloaded"
@@ -111,29 +111,22 @@ function InstallScene({ active }: { active: boolean }) {
       <At phase={phase} when={1} className="mt-3">
         <Panel>
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Airspace Connector Setup</span>
-            <span className="text-xs text-paper/60">{phase >= 2 ? "Installed" : "Installing…"}</span>
+            <span className="font-medium">Installing Airspace</span>
+            <span className="flex items-center gap-1.5 text-xs text-paper/60">
+              {phase >= 2 && <Check className="size-3" strokeWidth={3} />}
+              {phase >= 2 ? "Installed" : "Installing…"}
+            </span>
           </div>
           <div className="mt-2.5">
             <Bar to={phase >= 1 ? 1 : 0} duration={1.6} />
           </div>
-          <At phase={phase} when={2}>
-            <ul className="mt-3 flex flex-col gap-1.5 text-xs text-paper/70">
-              {["Added to startup", "Runs in the system tray"].map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <Check className="size-3" strokeWidth={3} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </At>
         </Panel>
       </At>
 
       <At phase={phase} when={2} className="mt-3">
         <Panel className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Airspace Connector</p>
+            <p className="text-sm font-medium">Airspace</p>
             <p className="text-xs text-paper/60">Signed in as Cam</p>
           </div>
           <span className="flex items-center gap-2 text-xs">
@@ -146,11 +139,7 @@ function InstallScene({ active }: { active: boolean }) {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.3 }}
               >
-                {phase >= 4
-                  ? "Sending position · 4 msg/s"
-                  : phase >= 3
-                    ? "Connected to MSFS 2024"
-                    : "Waiting for the simulator"}
+                {phase >= 4 ? "Following your flight" : phase >= 3 ? "Connected to MSFS" : "Waiting for the sim"}
               </motion.span>
             </AnimatePresence>
           </span>
@@ -174,11 +163,11 @@ function JobScene({ active }: { active: boolean }) {
   return (
     <>
       <Title aside="12 available">Jobs at KSEA</Title>
-      <div className="flex gap-1.5 text-xs">
+      <div className="well inline-flex gap-0.5 rounded-lg p-0.5 text-xs">
         {["All", "Passengers", "Cargo"].map((filter, index) => (
           <span
             key={filter}
-            className={cn("rounded-full px-2.5 py-1", index === 0 ? "bg-paper text-ink" : "bg-paper/8 text-paper/60")}
+            className={cn("rounded-md px-3 py-1", index === 0 ? "surface-button text-paper" : "text-paper/50")}
           >
             {filter}
           </span>
@@ -192,8 +181,8 @@ function JobScene({ active }: { active: boolean }) {
             <li
               key={job.route}
               className={cn(
-                "flex items-center justify-between rounded-xl px-4 py-3 transition-colors duration-300",
-                picked ? "bg-paper/10 ring-1 ring-paper/40" : "bg-paper/6",
+                "flex items-center justify-between rounded-xl px-4 py-3",
+                picked ? "surface-button" : "well",
               )}
             >
               <div>
@@ -212,7 +201,7 @@ function JobScene({ active }: { active: boolean }) {
                     transition={{ type: "spring", stiffness: 400, damping: 22 }}
                     className={cn(
                       "rounded-full px-2.5 py-1 text-xs font-medium",
-                      phase >= 2 ? "bg-paper text-ink" : "border border-paper/40",
+                      phase >= 2 ? "bg-paper text-ink" : "surface-button",
                     )}
                   >
                     {phase >= 2 ? "Accepted" : "Accept"}
@@ -225,12 +214,9 @@ function JobScene({ active }: { active: boolean }) {
       </ul>
 
       <At phase={phase} when={3} className="mt-3">
-        <Panel className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+        <Panel className="flex justify-between text-xs">
           <span className="font-medium">Flight plan ready</span>
-          <span className="text-paper/60">128 nm</span>
-          <span className="text-paper/60">Est. 0:52</span>
-          <span className="text-paper/60">FL240</span>
-          <span className="text-paper/60">Gate B4</span>
+          <span className="text-paper/60">128 nm · 0:52</span>
         </Panel>
       </At>
     </>
@@ -273,7 +259,7 @@ function FlyScene({ active }: { active: boolean }) {
       >
         KSEA → KPDX
       </Title>
-      <p className="-mt-3 text-xs text-paper/50">CRJ-700 · 48 passengers · Job 1284</p>
+      <p className="-mt-3 text-xs text-paper/50">CRJ-700 · 48 passengers</p>
 
       <div className="relative mt-8 h-6">
         <div className="absolute inset-x-0 top-1/2 h-px bg-paper/20" />
@@ -330,7 +316,7 @@ function RankScene({ active }: { active: boolean }) {
             <span className="ml-1 text-xs font-medium text-paper/50">fpm</span>
           </p>
           <At phase={phase} when={1}>
-            <p className="text-xs text-paper/60">Smooth · 1.12 G · 3rd in your club</p>
+            <p className="text-xs text-paper/60">3rd best in your club</p>
           </At>
         </Panel>
         <Panel>
@@ -384,7 +370,7 @@ function ClubScene({ active }: { active: boolean }) {
 
   return (
     <>
-      <Title aside="24 pilots · 3 online">Pacific Northwest Club</Title>
+      <Title aside="3 online">Pacific Northwest</Title>
       <ul className="flex flex-col gap-2">
         {online.map((pilot) => (
           <li key={pilot.name} className="flex items-center gap-2.5 text-sm">
@@ -423,7 +409,7 @@ function ClubScene({ active }: { active: boolean }) {
             <span
               className={cn(
                 "rounded-full px-2.5 py-1 font-medium transition-colors",
-                phase >= 3 ? "bg-paper text-ink" : "border border-paper/40",
+                phase >= 3 ? "bg-paper text-ink" : "surface-button",
               )}
             >
               {phase >= 3 ? "Joined" : "Join"}
@@ -437,32 +423,32 @@ function ClubScene({ active }: { active: boolean }) {
 
 export const steps = [
   {
-    title: "Install the Connector",
-    body: "A small Windows app that starts with the sim and talks to it through SimConnect.",
+    title: "Install Airspace",
+    body: "A Windows app that connects to the sim on its own.",
     url: "airspace.club/download",
     Scene: InstallScene,
   },
   {
     title: "Pick a Job",
-    body: "Passenger or cargo, from the airport you are parked at. Accept one and the plan is ready.",
+    body: "Passenger or cargo, from the airport you're parked at.",
     url: "airspace.club/jobs",
     Scene: JobScene,
   },
   {
     title: "Fly",
-    body: "Any aircraft, any ATC. Airspace follows the flight from pushback to shutdown.",
+    body: "Airspace follows you from pushback to shutdown.",
     url: "airspace.club/flights/live",
     Scene: FlyScene,
   },
   {
     title: "Rank Up",
-    body: "The landing is graded, the pay lands, and the XP adds up toward the next rank.",
+    body: "Your landing is graded, then the pay and XP come in.",
     url: "airspace.club/flights/1284",
     Scene: RankScene,
   },
   {
     title: "Fly With Your Club",
-    body: "See who is on, talk in the club, and join the weekend group flight.",
+    body: "See who's up and join the weekend group flight.",
     url: "airspace.club/club",
     Scene: ClubScene,
   },

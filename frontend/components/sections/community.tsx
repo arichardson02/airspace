@@ -7,7 +7,8 @@ import { Counter } from "@/components/counter";
 import { RollStack } from "@/components/roll-stack";
 import { ScrollGroup, Slide, Words } from "@/components/scroll-group";
 import { useTick } from "@/lib/use-tick";
-import { cn } from "@/lib/utils";
+import { cn } from "@fs-career/ui/cn";
+import { Beam, Glow, Grid } from "@fs-career/ui/instruments";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -82,10 +83,15 @@ const ROW_PX = 44;
 
 const lift = { whileHover: { y: -4 }, transition: { type: "spring" as const, stiffness: 400, damping: 30 } };
 
-function Card({ children }: { children: ReactNode }) {
+// Each card has its own quiet light or texture behind it, like the cards in the app.
+function Card({ background, children }: { background: ReactNode; children: ReactNode }) {
   return (
-    <motion.div {...lift} className="flex h-full flex-col overflow-hidden rounded-3xl bg-ink p-6 text-paper sm:p-7">
-      {children}
+    <motion.div
+      {...lift}
+      className="surface relative flex h-full flex-col overflow-hidden rounded-[18px] p-6 text-paper sm:p-7"
+    >
+      {background}
+      <div className="relative flex flex-1 flex-col">{children}</div>
     </motion.div>
   );
 }
@@ -149,7 +155,10 @@ function GroupFlight() {
   const flight = groupFlights[current];
 
   return (
-    <motion.div {...lift} className="relative h-full min-h-80 overflow-hidden rounded-3xl text-paper">
+    <motion.div
+      {...lift}
+      className="relative h-full min-h-80 overflow-hidden rounded-[18px] text-paper shadow-[0_20px_40px_-24px_rgb(0_0_0/0.9)]"
+    >
       {/* The destination shot cross-fades; the old one eases out as the new one settles. */}
       <AnimatePresence initial={false}>
         <motion.div
@@ -170,6 +179,8 @@ function GroupFlight() {
         </motion.div>
       </AnimatePresence>
       <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-ink/10" />
+      {/* The card edge and top light, over the photo so it reads as the same surface as the other cards. */}
+      <div className="pointer-events-none absolute inset-0 rounded-[18px] border border-paper/10 shadow-[inset_0_1px_0_rgb(255_255_255/0.14)]" />
 
       <div className="absolute inset-x-6 top-6 flex items-center justify-between text-xs">
         <span className="font-medium">Group Flight</span>
@@ -284,36 +295,31 @@ export function Community(): ReactElement {
     <section
       id="community"
       aria-labelledby="community-title"
-      className="flex min-h-screen items-center bg-paper text-ink"
+      className="flex min-h-screen items-center overflow-x-clip bg-ink-2 text-paper"
     >
       <div className="mx-auto w-full max-w-7xl px-5 py-24 sm:py-32">
-        <ScrollGroup className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <ScrollGroup>
           <h2 id="community-title" className="display text-4xl sm:text-5xl md:text-6xl">
             <Words text="Your Club" />
           </h2>
-          <Slide from="right" range={[0.3, 0.8]}>
-            <p className="max-w-xs text-lg text-muted">
-              Join a club, follow every flight on the live map, and plan group flights.
-            </p>
-          </Slide>
         </ScrollGroup>
 
         <ScrollGroup className="mt-12 grid gap-5 md:grid-cols-6" to="start 35%">
-          <Slide from="left" range={[0, 0.6]} className="md:col-span-3 lg:col-span-2 lg:row-span-2">
-            <Card>
+          <Slide from="left" range={[0, 0.6]} className="md:col-span-3 lg:col-span-2">
+            <Card background={<Glow cx={92} cy={0} />}>
               <OnlineNow />
             </Card>
           </Slide>
           <Slide from="top" range={[0.1, 0.7]} className="md:col-span-3 lg:col-span-4">
             <GroupFlight />
           </Slide>
-          <Slide from="bottom" range={[0.3, 0.9]} className="md:col-span-3 lg:col-span-2">
-            <Card>
+          <Slide from="bottom" range={[0.3, 0.9]} className="md:col-span-3">
+            <Card background={<Beam />}>
               <Leaderboard />
             </Card>
           </Slide>
-          <Slide from="right" range={[0.4, 1]} className="md:col-span-3 lg:col-span-2">
-            <Card>
+          <Slide from="right" range={[0.4, 1]} className="md:col-span-3">
+            <Card background={<Grid />}>
               <ClubChat />
             </Card>
           </Slide>

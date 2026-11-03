@@ -27,6 +27,8 @@ export interface ConnectorDeps<H extends SimHandle = SimHandle> {
   /** Forgets the saved sign-in. */
   signOut(): Promise<void>;
   openBrowser(url: string): void;
+  /** The pilot's dashboard on the website. */
+  dashboardUrl: string;
   /** Connects to the simulator; rejects while it isn't running. */
   openSim(): Promise<SimConnection<H>>;
   createBackend(token: string, onSignedOut: () => void): Backend;
@@ -75,6 +77,9 @@ export class Connector<H extends SimHandle = SimHandle> {
         if (this.verificationUrl !== undefined && this.verificationUrl !== "") {
           this.deps.openBrowser(this.verificationUrl);
         }
+        break;
+      case "open-website":
+        this.deps.openBrowser(this.deps.dashboardUrl);
         break;
       case "retry-sign-in":
         if (!this.signedIn) this.signIn();

@@ -26,5 +26,5 @@ export function SmoothScroll(): ReactElement | null {
   if (reduceMotion) return null;
 
   // lerp 0.12 keeps the glide but tracks the wheel closely; lower values feel floaty.
-  return <ReactLenis root options={{ lerp: 0.12, anchors: true, autoRaf: true }} />;
+  return <ReactLenis root options={{ lerp: 0.12, autoRaf: true }} />;
 }

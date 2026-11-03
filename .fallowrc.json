@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
   "sealed": true,
-  "entry": ["desktop/electron/preload.ts", "frontend/scripts/*.mts", "scripts/*.ts"],
+  "entry": ["desktop/electron/preload.ts", "ui/scripts/*.mts", "scripts/*.ts"],
   "ignorePatterns": [".claude/**", "tools/oxlint/anti-slop/**", "**/dist/**"],
   "ignoreDependencies": ["@tailwindcss/turbopack", "@oxlint/plugins"],
   "rules": {
