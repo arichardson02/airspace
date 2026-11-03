@@ -14,7 +14,8 @@ description: Airspace's Electron desktop app in desktop/ — the main process ho
   is the simulator (its name in full weight when connected), then two cards that both open something, each with an
   arrow after its label: "On the Web" on the live map's globe (`MapBackdrop`, the same card art as the website),
   which opens the pilot's dashboard in the browser (the `open-website` command), and Co-op, drawn by `Cockpit`.
-  The Co-op page shows the same card once joined. It opens with the same drawn-on mark as the website
+  The Co-op page shows the same card once joined, then a Cockpit group: the aircraft ("Synced" or "Motion only")
+  and a row for each note from the connector (why it's motion only, SimBridge, the in-sim module). It opens with the same drawn-on mark as the website
   (`@fs-career/ui/intro`), and sign-in sits on the route map: one card that shows a skeleton while the app checks,
   then the code, with a light tracing the code box while it waits for approval. Status updates run in
   `startTransition`, so signing in or out swaps the screens through React's `<ViewTransition>`
@@ -28,7 +29,9 @@ description: Airspace's Electron desktop app in desktop/ — the main process ho
   `node_modules`), builds the page, and writes `desktop/release/Airspace-Setup-<version>.exe`, a per-user NSIS
   installer, with its `.blockmap` and `latest.yml`, built for `https://airspace.club/api` (`RELEASE_BACKEND_URL`
   overrides it). It never publishes (`--publish never`). `node-datachannel`'s native addon ships beside the app in
-  `resources/`. The installer isn't code-signed yet, so Windows shows "Windows protected your PC" (More info, then
+  `resources/`, and so does MobiFlight's in-sim module (`scripts/sim-module.mjs` downloads the pinned release and
+  checks its sha256). On launch the packaged app copies the module into the MSFS Community folder
+  (`electron/sim-module.ts`, found through `UserCfg.opt`) when it's missing or older. The installer isn't code-signed yet, so Windows shows "Windows protected your PC" (More info, then
   Run anyway).
 - **Releases:** `.github/workflows/desktop-release.yml` builds on a Windows runner and publishes a GitHub release
   (`desktop-v0.1.<run number>`, marked latest) on every push to `main` that touches `desktop/`, `contracts/`, `ui/`,

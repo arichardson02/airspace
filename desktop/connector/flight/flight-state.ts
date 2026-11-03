@@ -7,9 +7,10 @@ import {
 } from "node-simconnect";
 import type { FlightState } from "@fs-career/contracts";
 
-// IDs 1-9 belong to the position tracker on the same connection.
-const FLIGHT_DEFINITION = 10;
-const FLIGHT_REQUEST = 10;
+import { DEFINITION, REQUEST } from "../sim-ids.js";
+
+const FLIGHT_DEFINITION = DEFINITION.flight;
+const FLIGHT_REQUEST = REQUEST.flight;
 
 // Read and written in this order. The same values YourControls copies; the velocities keep the
 // follower's instruments and autopilot working.
@@ -30,9 +31,6 @@ const FLIGHT_SIMVARS: [key: keyof FlightState, name: string, unit: string][] = [
   ["elevator", "ELEVATOR POSITION", "position"],
   ["aileron", "AILERON POSITION", "position"],
   ["rudder", "RUDDER POSITION", "position"],
-  // The pilot flying sets the power, so the follower's levers and engines match.
-  ["throttle1", "GENERAL ENG THROTTLE LEVER POSITION:1", "percent"],
-  ["throttle2", "GENERAL ENG THROTTLE LEVER POSITION:2", "percent"],
 ];
 
 export const FLIGHT_KEYS = FLIGHT_SIMVARS.map(([key]) => key);
@@ -55,8 +53,6 @@ const EMPTY_FLIGHT_STATE: FlightState = {
   elevator: 0,
   aileron: 0,
   rudder: 0,
-  throttle1: 0,
-  throttle2: 0,
 };
 
 /** Builds a state from `read`, which is called for each value in the order SimConnect sends them. */

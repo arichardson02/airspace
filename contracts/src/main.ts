@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ingestBatchSchema } from "./messages.js";
 
 export * from "./desktop.js";
-export type * from "./group.js";
+export * from "./group.js";
 export * from "./messages.js";
 
 export const contract = {

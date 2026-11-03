@@ -34,7 +34,18 @@ export type CoopStatus =
       flyer: string;
       /** When both pilots last moved their controls at once (epoch ms). */
       dualInputAt?: number;
+      /** What's shared beyond the aircraft's motion, once a co-pilot is connected. */
+      cockpit?: CockpitStatus;
     };
+
+export interface CockpitStatus {
+  /** The loaded aircraft, e.g. "A320neo (FlyByWire)". */
+  aircraft: string;
+  /** Whether the cockpits sync; when false only the aircraft's motion is shared. */
+  synced: boolean;
+  /** Short lines worth showing the pilot, e.g. why only motion is shared or that MCDU sync needs SimBridge. */
+  notes: string[];
+}
 
 export type UpdateStatus =
   // Up to date, still checking, a development build, or the last check failed (it's logged and retried).

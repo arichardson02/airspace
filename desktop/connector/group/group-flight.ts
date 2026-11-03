@@ -1,9 +1,16 @@
 import type { SimConnectConnection } from "node-simconnect";
-import type { CoopMessage, FlightState, GroupPeer } from "@fs-career/contracts";
+import type { CockpitStatus, CoopMessage, FlightState, GroupPeer } from "@fs-career/contracts";
+import { createCockpitIo } from "../aircraft/cockpit-io.js";
+import { watchAircraft } from "../aircraft/detect.js";
+import type { AircraftProfile, FmsLink } from "../aircraft/profile.js";
+import { watchClock } from "../clock/clock.js";
 import { watchControls } from "../flight/controls.js";
 import { connectFlightState } from "../flight/flight-state.js";
 import { createFollower } from "../flight/follower.js";
+import { connectSimCode } from "../sim-code.js";
+import { createSimEvents } from "../sim-ids.js";
 import { type GroupSession, joinGroup } from "./group-session.js";
+import { startSharing, type CoopSim, type Sharing } from "./sharing.js";
 
 export interface CoopUpdate {
   /** Everyone else connected. */
@@ -12,6 +19,8 @@ export interface CoopUpdate {
   flyer: string;
   /** When both pilots last moved their controls at once. */
   dualInputAt?: number;
+  /** What's shared beyond the motion, once a co-pilot is connected. */
+  cockpit?: CockpitStatus;
 }
 
 export interface CoopJoinOptions {
@@ -42,9 +51,35 @@ const DUAL_INPUT_WARNING_MS = 2_000;
  */
 export function createCoop(handle: SimConnectConnection, signalingUrl: string): Coop {
   let onFrame: ((state: FlightState) => void) | undefined;
+  let sharing: Sharing | undefined;
+  let notify: (() => void) | undefined;
   const controls = watchControls(handle);
   const flightState = connectFlightState(handle, (state) => onFrame?.(state));
   const follower = createFollower(handle, flightState.write);
+  const events = createSimEvents(handle);
+  const simCode = connectSimCode(handle, () => notify?.());
+
+  // The FMS link follows the loaded aircraft, so its key history covers everything since the aircraft loaded.
+  let fms: FmsLink | undefined;
+  let fmsProfile: AircraftProfile | undefined;
+  const detector = watchAircraft(handle, (aircraft) => {
+    if (aircraft.profile !== fmsProfile) {
+      fms?.stop();
+      fmsProfile = aircraft.profile;
+      fms = aircraft.profile.fms?.start(handle, {
+        onPress: (press) => sharing?.onMcduPress(press),
+        onState: () => notify?.(),
+      });
+    }
+    sharing?.onAircraftChanged();
+  });
+  const sim: CoopSim = {
+    io: createCockpitIo(handle, events, simCode),
+    aircraft: () => detector.current(),
+    fms: () => fms,
+    clock: watchClock(handle, events),
+    simCode,
+  };
 
   // Never leave the aircraft frozen from an earlier run.
   follower.stop();
@@ -70,8 +105,13 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
 
       const send = (message: CoopMessage, fast = false) => session?.broadcast(message, { fast });
       const changed = () => {
-        if (!ended) options.onChange({ peers: [...peers.values()], flyer, dualInputAt });
+        if (ended) return;
+        const cockpit = sharing?.status();
+        const update = { peers: [...peers.values()], flyer, dualInputAt };
+        options.onChange(cockpit ? { ...update, cockpit } : update);
       };
+      sharing = startSharing({ sim, self, send: (message) => send(message), changed });
+      notify = changed;
 
       const warnDualInput = (now: number): boolean => {
         if (now - lastWarnedAt < DUAL_INPUT_WARNING_MS) return false;
@@ -103,6 +143,9 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
         ended = true;
         onFrame = undefined;
         flightState.setReading(false);
+        sharing?.stop();
+        sharing = undefined;
+        notify = undefined;
       };
 
       onFrame = (state) => {
@@ -112,7 +155,8 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
         if (flyer === self) {
           if (now - lastSentAt < SEND_INTERVAL_MS) return;
           lastSentAt = now;
-          send({ type: "flight", time: now, state, input: input.moving }, true);
+          const flightControls = sharing?.flightControls() ?? [];
+          send({ type: "flight", time: now, state, input: input.moving, controls: flightControls }, true);
           return;
         }
 
@@ -134,12 +178,14 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
             peers.set(peer.pilotId, peer);
             console.log(`Connected to ${peer.name}`);
             changed();
-            // The pilot already in the group keeps flying; the newcomer follows.
+            // The pilot already in the group keeps flying and hosts; the newcomer follows.
             if (joinedBeforeUs) setFlyer(peer.pilotId, 0);
+            sharing?.onPeerConnected(!joinedBeforeUs);
           },
           onPeerLeft: (pilotId) => {
             console.log(`${names.get(pilotId) ?? pilotId} left the group`);
             peers.delete(pilotId);
+            sharing?.onPeerLeft();
             changed();
             setFlyer(self, 0);
           },
@@ -149,6 +195,7 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
                 if (pilotId !== flyer) break;
                 flyerMoving = message.input;
                 follower.receive(message.time, message.state);
+                sharing?.applyFlightControls(message.controls);
                 break;
               case "control":
                 // Equal epochs mean both took control at once; the lower pilot ID wins on both sides.
@@ -158,6 +205,15 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
                 break;
               case "dual-input":
                 warnDualInput(Date.now());
+                break;
+              case "hello":
+              case "cockpit":
+              case "cockpit-snapshot":
+              case "cockpit-action":
+              case "mcdu":
+              case "mcdu-history":
+              case "clock":
+                sharing?.receive(pilotId, message);
                 break;
             }
           },

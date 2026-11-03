@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { windowCommandSchema } from "@fs-career/contracts";
 import { createConnector } from "../connector/app/create.js";
 import { logToFile } from "./log.js";
+import { installSimModule } from "./sim-module.js";
 import { installUpdate, startUpdater } from "./updater.js";
 
 // One copy at a time: a second connector would fight the first over the simulator and the co-op group, and a
@@ -107,6 +108,13 @@ function restartToUpdate(): void {
 
 async function start(): Promise<void> {
   if (!primary) return;
+  if (app.isPackaged) {
+    try {
+      installSimModule(process.resourcesPath);
+    } catch {
+      // A read-only or missing Community folder only costs the in-sim buttons; the Co-op status says so.
+    }
+  }
   await app.whenReady();
   createWindow();
   connector.start();

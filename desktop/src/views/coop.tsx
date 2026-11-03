@@ -5,7 +5,7 @@ import type { ConnectorStatus, CoopStatus, Pilot } from "@fs-career/contracts";
 import { ActionButton } from "@fs-career/ui/button";
 import { Field, FormMessage } from "@fs-career/ui/field";
 import { ease, rise } from "@fs-career/ui/motion";
-import { Page } from "@fs-career/ui/shell";
+import { Page, SettingsGroup, SettingsRow } from "@fs-career/ui/shell";
 import { CoopCard } from "../components/coop-card";
 import { send } from "../lib/connector";
 
@@ -74,6 +74,15 @@ function Group({ pilot, coop }: { pilot: Pilot; coop: Extract<CoopStatus, { stat
   return (
     <div className="flex flex-col gap-4">
       <CoopCard size="lg" pilot={pilot} coop={coop} />
+
+      {coop.cockpit !== undefined && (
+        <SettingsGroup title="Cockpit">
+          <SettingsRow label={coop.cockpit.aircraft}>{coop.cockpit.synced ? "Synced" : "Motion only"}</SettingsRow>
+          {coop.cockpit.notes.map((note) => (
+            <SettingsRow key={note} label={note} />
+          ))}
+        </SettingsGroup>
+      )}
 
       <AnimatePresence>
         {dualInput && (

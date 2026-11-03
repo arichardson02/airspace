@@ -1,4 +1,12 @@
-import type { CoopMessage, GroupPeer, ServerSignalingMessage, Signal } from "@fs-career/contracts";
+import type {
+  CockpitValue,
+  CoopMessage,
+  SimClock,
+  GroupPeer,
+  McduPress,
+  ServerSignalingMessage,
+  Signal,
+} from "@fs-career/contracts";
 import { buildFlightState } from "../flight/flight-state.js";
 
 // The co-op server and peers send JSON. It's checked here as it arrives, and anything that isn't a message the
@@ -19,15 +27,23 @@ export function parseCoopMessage(text: string): CoopMessage | undefined {
   // aircraft reads it: null becomes 0 and a missing value NaN.
   const values = new Map<string, unknown>(Object.entries(json.state));
   const state = buildFlightState((key) => Number(values.get(key)));
-  return { type: "flight", time: json.time, state, input: json.input };
+  const controls = json.controls.slice(0, MAX_FLIGHT_CONTROLS).map((value) => Number(value));
+  return { type: "flight", time: json.time, state, input: json.input, controls };
 }
 
-/** A flight message before its state is read. */
+// Bounds on what a peer can make us hold, whatever it sends.
+const MAX_FLIGHT_CONTROLS = 64;
+const MAX_VALUES = 5_000;
+const MAX_KEY_LENGTH = 100;
+const MAX_TEXT_LENGTH = 200;
+
+/** A flight message before its state and controls are read. */
 interface FlightMessage {
   type: "flight";
   time: number;
   state: object;
   input: boolean;
+  controls: unknown[];
 }
 
 function isServerMessage(json: unknown): json is ServerSignalingMessage {
@@ -75,19 +91,108 @@ function isFlightMessage(json: unknown): json is FlightMessage {
     typeof json.state === "object" &&
     json.state !== null &&
     "input" in json &&
-    typeof json.input === "boolean"
+    typeof json.input === "boolean" &&
+    "controls" in json &&
+    Array.isArray(json.controls)
   );
 }
 
 /** Any co-op message other than a flight message. */
 function isOtherCoopMessage(json: unknown): json is Exclude<CoopMessage, { type: "flight" }> {
-  if (typeof json !== "object" || json === null || !("type" in json)) return false;
+  if (!isObject(json) || !("type" in json)) return false;
   switch (json.type) {
     case "control":
       return "flyer" in json && typeof json.flyer === "string" && "epoch" in json && typeof json.epoch === "number";
     case "dual-input":
       return true;
+    case "hello":
+      return isHello(json);
+    case "mcdu":
+      return "press" in json && isPress(json.press);
+    case "mcdu-history":
+      return "presses" in json && isList(json.presses, isPress);
+    case "clock":
+      return "clock" in json && isClock(json.clock);
+    default:
+      return isCockpitMessage(json);
+  }
+}
+
+function isCockpitMessage(
+  json: object & { type: unknown },
+): json is Extract<CoopMessage, { type: "cockpit" | "cockpit-snapshot" | "cockpit-action" }> {
+  switch (json.type) {
+    case "cockpit":
+      return "changes" in json && isList(json.changes, isCockpitValue);
+    case "cockpit-snapshot":
+      return "values" in json && isList(json.values, isCockpitValue);
+    case "cockpit-action":
+      return "key" in json && isText(json.key, MAX_KEY_LENGTH) && "data" in json && typeof json.data === "number";
     default:
       return false;
   }
+}
+
+function isObject(json: unknown): json is object {
+  return typeof json === "object" && json !== null;
+}
+
+function isText(json: unknown, maxLength: number): json is string {
+  return typeof json === "string" && json.length <= maxLength;
+}
+
+function isList<T>(json: unknown, isItem: (item: unknown) => item is T): json is T[] {
+  return Array.isArray(json) && json.length <= MAX_VALUES && json.every((item) => isItem(item));
+}
+
+function isHello(json: unknown): json is Extract<CoopMessage, { type: "hello" }> {
+  return (
+    isObject(json) &&
+    "protocol" in json &&
+    typeof json.protocol === "number" &&
+    "aircraft" in json &&
+    isText(json.aircraft, MAX_TEXT_LENGTH) &&
+    "profile" in json &&
+    (json.profile === null || isText(json.profile, MAX_KEY_LENGTH)) &&
+    "profileVersion" in json &&
+    typeof json.profileVersion === "number" &&
+    "loadedAt" in json &&
+    typeof json.loadedAt === "number" &&
+    "mcduPresses" in json &&
+    typeof json.mcduPresses === "number"
+  );
+}
+
+function isCockpitValue(json: unknown): json is CockpitValue {
+  return (
+    isObject(json) &&
+    "key" in json &&
+    isText(json.key, MAX_KEY_LENGTH) &&
+    "value" in json &&
+    typeof json.value === "number" &&
+    "seq" in json &&
+    typeof json.seq === "number"
+  );
+}
+
+function isPress(json: unknown): json is McduPress {
+  return (
+    isObject(json) &&
+    "side" in json &&
+    (json.side === "left" || json.side === "right") &&
+    "key" in json &&
+    isText(json.key, MAX_KEY_LENGTH)
+  );
+}
+
+const CLOCK_KEYS = ["year", "dayOfYear", "secondsOfDay"] as const satisfies readonly (keyof SimClock)[];
+
+function isClock(json: unknown): json is SimClock {
+  if (!isObject(json)) return false;
+  const values = new Map<string, unknown>(Object.entries(json));
+  return CLOCK_KEYS.every((key) => isNumber(values.get(key)));
+}
+
+function isNumber(json: unknown): json is number {
+  return typeof json === "number";
 }

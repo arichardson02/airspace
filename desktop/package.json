@@ -54,6 +54,10 @@
       {
         "from": "dist/native/node_datachannel.node",
         "to": "node_datachannel.node"
+      },
+      {
+        "from": "dist/sim-module",
+        "to": "sim-module"
       }
     ],
     "npmRebuild": false,

@@ -1,6 +1,6 @@
 ---
 name: connector
-description: Airspace's simulator connector in desktop/connector/ — the Connector controller, SimConnect setup for MSFS 2020, device-code sign-in, the batched backend ingest client, position tracking, and shared-cockpit co-op over peer-to-peer WebRTC (node-datachannel). Use when working on SimConnect, flight data, co-op/group flying, control takeover, ConnectorStatus or ConnectorCommand.
+description: Airspace's simulator connector in desktop/connector/ — the Connector controller, SimConnect setup for MSFS 2020, device-code sign-in, the batched backend ingest client, position tracking, shared-cockpit co-op over peer-to-peer WebRTC (node-datachannel), per-aircraft cockpit profiles and cockpit sync (FBW A32NX first), MCDU sync through SimBridge, the in-sim module (MobiFlight WASM) for H:events, and the host's clock. Use when working on SimConnect, flight data, co-op/group flying, control takeover, aircraft profiles, cockpit or MCDU sync, ConnectorStatus or ConnectorCommand.
 ---
 
 # connector
@@ -19,7 +19,31 @@ It has no Electron imports of its own.
   their controls deliberately takes over, unless both are moving (dual input). `group/messages.ts` checks every
   message from the co-op server and the other pilot before it's used.
 - SimConnect setup (data definitions, event mappings) happens once per simulator connection, because it can't
-  be registered twice; joining a group only adds a session on top.
+  be registered twice; joining a group only adds a session on top. `sim-ids.ts` holds every id range, and
+  `createSimEvents` maps event names once per connection.
+- **Aircraft profiles** (`aircraft/`): `profile.ts` is the vocabulary (`Control` = how to read a cockpit control and
+  how to set it: its own variable, an event, a toggle, a momentary press, an input event, an H:event through the
+  in-sim module, or custom code); `detect.ts` works out the loaded aircraft every 2 s (by ATC model and the
+  aircraft's own variables, since liveries change the title); `profiles.ts` lists them, and anything unmatched uses
+  `generic.ts` (motion and thrust levers only); `cockpit-io.ts` reads a profile's controls (changes only, tagged)
+  and writes them. The A32NX profile is `aircraft/a32nx/` (one file per panel group, `mcdu.ts`, `flight-controls.ts`
+  for what only the pilot flying sets). Adding an aircraft: [adding-an-aircraft.md](adding-an-aircraft.md).
+- **Cockpit sync** (`group/cockpit-sync.ts`, `group/sharing.ts`): only controls the pilot touches sync, never their
+  effects (each sim computes those). Changes go both ways regardless of who flies, batched every 50 ms; the newest
+  change per control wins (`seq`, ties to the lower pilot id), and a value we set isn't sent back when it reads back.
+  Peers exchange a `hello` (aircraft, profile id and version); cockpits sync only between equal profiles, else only
+  the motion is shared and the window says why. The aircraft loaded first sends a snapshot. The pilot flying's
+  flyer-only controls ride in the flight message every frame.
+- **MCDU** (`aircraft/a32nx/mcdu.ts`): presses are seen through each key's push-animation L:var and replayed through
+  FlyByWire SimBridge (`ws://127.0.0.1:8380/interfaces/v1/mcdu`), which both pilots run with SimBridge turned on in
+  the flyPad. Presses since the aircraft loaded are kept, so a co-pilot joining late with an untouched FMS gets them
+  replayed.
+- **In-sim module** (`sim-code.ts`): MobiFlight's WASM module runs calculator code inside the sim, the only way to
+  fire H:events (the A32NX's ECAM control panel). The desktop app installs it into the Community folder
+  (`electron/sim-module.ts`); MSFS loads it at its next start.
+- **Time** (`clock/`, separate from aircraft): the host (whoever was in the group first) sends its date and time on
+  join and every minute, and the other sim's clock is set to it when it's off by more than a minute. Weather isn't
+  synced: MSFS 2020 doesn't let outside apps set it.
 - MSFS 2020 only for now (SimConnect protocol KittyHawk). Everyone in a group flies the same aircraft.
 - Window ↔ connector types are in `contracts/src/desktop.ts`: the connector sends a full `ConnectorStatus` on
   every change, the window sends commands, which the main process parses with `windowCommandSchema` and passes on
