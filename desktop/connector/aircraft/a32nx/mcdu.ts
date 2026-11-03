@@ -3,6 +3,7 @@ import {
   SimConnectConstants,
   SimConnectDataType,
   SimConnectPeriod,
+  type RecvSimObjectData,
   type SimConnectConnection,
 } from "node-simconnect";
 import type { McduPress, McduSide } from "@fs-career/contracts";
@@ -102,7 +103,8 @@ export const mcdu: FmsSync = {
       handle.addToDataDefinition(DEFINITION.mcdu, datum.name, "number", SimConnectDataType.FLOAT64, 0, i);
     });
     const last = DATUMS.map(() => 0);
-    handle.on("simObjectData", (sample) => {
+    // Removed on stop: listeners share each sample's buffer, so a second one left behind would read past its end.
+    const onData = (sample: RecvSimObjectData) => {
       if (sample.requestID !== REQUEST.mcdu) return;
       const rises: McduPress[] = [];
       for (let i = 0; i < sample.defineCount; i++) {
@@ -120,7 +122,8 @@ export const mcdu: FmsSync = {
         if (both || isEcho(press)) continue;
         pressed(press);
       }
-    });
+    };
+    handle.on("simObjectData", onData);
     handle.requestDataOnSimObject(
       REQUEST.mcdu,
       DEFINITION.mcdu,
@@ -194,6 +197,7 @@ export const mcdu: FmsSync = {
         clearTimeout(linkTimer);
         clearTimeout(retryTimer);
         socket?.close();
+        handle.off("simObjectData", onData);
         handle.requestDataOnSimObject(
           REQUEST.mcdu,
           DEFINITION.mcdu,
