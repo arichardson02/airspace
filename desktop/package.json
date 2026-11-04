@@ -22,6 +22,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^5",
     "electron": "^45.1.0",
     "electron-builder": "^26.18.0",
@@ -36,7 +37,8 @@
     "react-dom": "19.3.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^7"
+    "vite": "^7",
+    "ws": "8.22.0"
   },
   "build": {
     "appId": "club.airspace.desktop",
@@ -58,6 +60,10 @@
       {
         "from": "dist/sim-module",
         "to": "sim-module"
+      },
+      {
+        "from": "dist/sim-package",
+        "to": "sim-package"
       }
     ],
     "npmRebuild": false,

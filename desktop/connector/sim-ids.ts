@@ -21,6 +21,8 @@ export const DEFINITION = {
   mobiflightResponse: 501,
   clientCommand: 502,
   clientResponse: 503,
+  /** The co-pilot's camera, set to the co-pilot's seat after spawning. */
+  seat: 600,
 } as const;
 
 /** Data request ids (`requestDataOnSimObject`, `requestSystemState`, `requestClientData`). 1-9 are the tracker's. */
@@ -34,6 +36,8 @@ export const REQUEST = {
   inputEvents: 410,
   mobiflightResponse: 501,
   clientResponse: 503,
+  /** The AircraftLoaded system state: the loaded aircraft's aircraft.cfg path. */
+  aircraftLoaded: 600,
 } as const;
 
 /** Client data area ids (`mapClientDataNameToID`). */

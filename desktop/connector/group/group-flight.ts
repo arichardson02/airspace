@@ -54,7 +54,12 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
   let sharing: Sharing | undefined;
   let notify: (() => void) | undefined;
   const controls = watchControls(handle);
-  const flightState = connectFlightState(handle, (state) => onFrame?.(state));
+  // The latest state read from our own aircraft; once it follows, that's the pilot flying's.
+  let latest: FlightState | undefined;
+  const flightState = connectFlightState(handle, (state) => {
+    latest = state;
+    onFrame?.(state);
+  });
   const follower = createFollower(handle, flightState.write);
   const events = createSimEvents(handle);
   const simCode = connectSimCode(handle, () => notify?.());
@@ -79,6 +84,8 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
     fms: () => fms,
     clock: watchClock(handle, events),
     simCode,
+    handle,
+    position: () => (latest ? { latitude: latest.latitude, longitude: latest.longitude } : undefined),
   };
 
   // Never leave the aircraft frozen from an earlier run.
@@ -214,6 +221,8 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
               case "mcdu":
               case "mcdu-history":
               case "clock":
+              case "flight-request":
+              case "flight-file":
                 sharing?.receive(pilotId, message);
                 break;
               case "heartbeat":

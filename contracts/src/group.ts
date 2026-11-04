@@ -42,7 +42,7 @@ export interface FlightState {
 }
 
 /** Bumped whenever the co-op messages change in a way an older connector can't follow. */
-export const COOP_PROTOCOL = 3;
+export const COOP_PROTOCOL = 4;
 
 /** One cockpit control's value. `seq` orders changes to the same control; the higher one wins. */
 export interface CockpitValue {
@@ -86,6 +86,10 @@ export type CoopMessage =
       loadedAt: number;
       /** MCDU keys pressed since the aircraft loaded, so a pilot joining late can catch the FMS up. */
       mcduPresses: number;
+      /** The aircraft's title (its livery), or null while the sim is at its menus. */
+      title: string | null;
+      /** Where the aircraft is, or null while the sim is at its menus. */
+      position: { latitude: number; longitude: number } | null;
     }
   // Cockpit controls the pilot changed, batched.
   | { type: "cockpit"; changes: CockpitValue[] }
@@ -100,4 +104,9 @@ export type CoopMessage =
   // The host's date and time, sent on join and every minute.
   | { type: "clock"; clock: SimClock }
   // Sent every second on the reliable channel, so a peer can tell the link is alive while nothing else is sent.
-  | { type: "heartbeat" };
+  | { type: "heartbeat" }
+  // The co-pilot isn't set up in the host's flight (at the menus, another aircraft or airport) and asks for it.
+  | { type: "flight-request" }
+  // The host's flight, for the co-pilot's sim to load: the host's saved .FLT text, and where the aircraft lives
+  // inside its package: the livery's aircraft.cfg, then its base aircraft's (`SimObjects\Airplanes\<folder>\aircraft.cfg`).
+  | { type: "flight-file"; flt: string; aircraftPaths: string[] };

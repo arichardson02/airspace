@@ -116,8 +116,27 @@ function isOtherCoopMessage(json: unknown): json is Exclude<CoopMessage, { type:
     case "clock":
       return "clock" in json && isClock(json.clock);
     default:
-      return isCockpitMessage(json);
+      return isCockpitMessage(json) || isSpawnMessage(json);
   }
+}
+
+// A host's saved flight is a few hundred lines; a full state dump tens of kilobytes.
+const MAX_FLT_LENGTH = 512_000;
+const MAX_PATH_LENGTH = 260;
+
+function isSpawnMessage(
+  json: object & { type: unknown },
+): json is Extract<CoopMessage, { type: "flight-request" | "flight-file" }> {
+  if (json.type === "flight-request") return true;
+  return (
+    json.type === "flight-file" &&
+    "flt" in json &&
+    isText(json.flt, MAX_FLT_LENGTH) &&
+    "aircraftPaths" in json &&
+    Array.isArray(json.aircraftPaths) &&
+    json.aircraftPaths.length <= 4 &&
+    json.aircraftPaths.every((path) => isText(path, MAX_PATH_LENGTH))
+  );
 }
 
 function isCockpitMessage(
@@ -161,7 +180,31 @@ function isHello(json: unknown): json is Extract<CoopMessage, { type: "hello" }>
     "loadedAt" in json &&
     typeof json.loadedAt === "number" &&
     "mcduPresses" in json &&
-    typeof json.mcduPresses === "number"
+    typeof json.mcduPresses === "number" &&
+    hasWhereabouts(json)
+  );
+}
+
+/** The hello's aircraft title and position, both null at the sim's menus. */
+function hasWhereabouts(
+  json: unknown,
+): json is { title: string | null; position: { latitude: number; longitude: number } | null } {
+  return (
+    isObject(json) &&
+    "title" in json &&
+    (json.title === null || isText(json.title, MAX_PATH_LENGTH)) &&
+    "position" in json &&
+    (json.position === null || isPosition(json.position))
+  );
+}
+
+function isPosition(json: unknown): json is { latitude: number; longitude: number } {
+  return (
+    isObject(json) &&
+    "latitude" in json &&
+    typeof json.latitude === "number" &&
+    "longitude" in json &&
+    typeof json.longitude === "number"
   );
 }
 

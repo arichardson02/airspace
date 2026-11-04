@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import * as esbuild from "esbuild";
 import { createServer } from "vite";
-import { mainBuildOptions, root } from "./bundle-main.mjs";
+import { bundle, mainBuildOptions, menuScriptBuildOptions, root } from "./bundle-main.mjs";
 
 // Required from Node, the electron package exports the path to its executable. require() returns any, and
 // String() gives that path its type.
@@ -58,6 +58,8 @@ const restartElectron = {
   },
 };
 
+// The menu script is built once; the app installs it into the sim at launch.
+await bundle(menuScriptBuildOptions());
 const options = mainBuildOptions({ release: false });
 const context = await esbuild.context({ ...options, plugins: [...(options.plugins ?? []), restartElectron] });
 await context.watch();

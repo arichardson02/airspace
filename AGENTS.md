@@ -52,6 +52,7 @@ Fallow enforces the dependency direction (`boundaries` in `.fallowrc.json`):
 - `desktop/electron` (main process) may use `contracts` and `desktop/connector`; `desktop/src` (the window) may use
   `contracts` and `ui`, never the connector or Node APIs. It talks to the main process only through
   `window.airspace`.
+- `desktop/sim-package` runs inside the simulator's menus and imports nothing.
 - Flight data never goes through the server; co-op streams peer to peer.
 
 ## Implementation standard

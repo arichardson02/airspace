@@ -3,10 +3,14 @@ import type { CockpitIo } from "../aircraft/cockpit-io.js";
 import type { DetectedAircraft } from "../aircraft/detect.js";
 import type { AircraftProfile, FmsLink } from "../aircraft/profile.js";
 import type { ClockLink } from "../clock/clock.js";
+import type { SimConnectConnection } from "node-simconnect";
 import type { SimCode } from "../sim-code.js";
+import { menuLink } from "../spawn/menu.js";
 import { startCockpitSync, type CockpitSync } from "./cockpit-sync.js";
+import { startSpawning, type SpawningMessage } from "./spawning.js";
 
-// Everything shared in co-op beyond the aircraft's motion: the cockpit, the MCDU, and the host's clock.
+// Everything shared in co-op beyond the aircraft's motion: the cockpit, the MCDU, the host's clock, and putting the
+// co-pilot into the host's flight.
 
 // The host's clock is re-sent this often.
 const CLOCK_EVERY_MS = 60_000;
@@ -16,10 +20,12 @@ const HELLO_TIMEOUT_MS = 5_000;
 const HISTORY_PRESS_MS = 150;
 
 type Hello = Extract<CoopMessage, { type: "hello" }>;
-export type SharingMessage = Extract<
-  CoopMessage,
-  { type: "hello" | "cockpit" | "cockpit-snapshot" | "cockpit-action" | "mcdu" | "mcdu-history" | "clock" }
->;
+export type SharingMessage =
+  | Extract<
+      CoopMessage,
+      { type: "hello" | "cockpit" | "cockpit-snapshot" | "cockpit-action" | "mcdu" | "mcdu-history" | "clock" }
+    >
+  | SpawningMessage;
 
 /** The pieces of one simulator connection that sharing uses. */
 export interface CoopSim {
@@ -28,6 +34,9 @@ export interface CoopSim {
   fms(): FmsLink | undefined;
   clock: ClockLink;
   simCode: SimCode;
+  handle: SimConnectConnection;
+  /** Where the aircraft is now, once the flight state has been read. */
+  position(): { latitude: number; longitude: number } | undefined;
 }
 
 export interface Sharing {
@@ -63,7 +72,10 @@ export function startSharing(options: {
   let profile: AircraftProfile | undefined;
   let clockTimer: ReturnType<typeof setInterval> | undefined;
   let helloTimer: ReturnType<typeof setTimeout> | undefined;
+  // Where our aircraft was when the co-pilot connected, before following could move it.
+  let positionAtConnect: { latitude: number; longitude: number } | undefined;
   const historyTimers: ReturnType<typeof setTimeout>[] = [];
+  const spawning = startSpawning({ handle: sim.handle, menu: menuLink(), send, changed });
 
   const compatible = (): boolean => {
     const aircraft = sim.aircraft();
@@ -77,17 +89,20 @@ export function startSharing(options: {
     );
   };
 
+  // Sent at the menus too, so a co-pilot there can ask for the host's flight.
   const sendHello = () => {
+    if (!peerConnected) return;
     const aircraft = sim.aircraft();
-    if (!aircraft || !peerConnected) return;
     send({
       type: "hello",
       protocol: COOP_PROTOCOL,
-      aircraft: aircraft.profile.name || aircraft.identity.title,
+      aircraft: aircraft === undefined ? "" : aircraft.profile.name || aircraft.identity.title,
       profile: profileId(aircraft),
-      profileVersion: aircraft.profile.version,
-      loadedAt: aircraft.loadedAt,
+      profileVersion: aircraft?.profile.version ?? 0,
+      loadedAt: aircraft?.loadedAt ?? Date.now(),
       mcduPresses: sim.fms()?.history().length ?? 0,
+      title: aircraft?.identity.title ?? null,
+      position: aircraft === undefined ? null : (sim.position() ?? null),
     });
   };
 
@@ -135,7 +150,8 @@ export function startSharing(options: {
 
   const notes = (): string[] => {
     const aircraft = sim.aircraft();
-    const result: string[] = [];
+    const spawnNote = spawning.note();
+    const result: string[] = spawnNote === undefined ? [] : [spawnNote];
     if (!sync) result.push(motionOnlyReason(aircraft, peer, helloLate));
     const fms = sim.fms();
     if (sync && fms?.state() === "simbridge-missing") result.push("MCDU sync needs FlyByWire SimBridge running");
@@ -155,6 +171,7 @@ export function startSharing(options: {
     onPeerConnected(isHost) {
       peerConnected = true;
       host = isHost;
+      positionAtConnect = sim.position();
       sendHello();
       helloTimer = setTimeout(() => {
         helloLate = peer === undefined;
@@ -167,6 +184,7 @@ export function startSharing(options: {
     onPeerLeft() {
       peerConnected = false;
       peer = undefined;
+      spawning.reset();
       clearInterval(clockTimer);
       clearTimeout(helloTimer);
       reconsider();
@@ -190,7 +208,12 @@ export function startSharing(options: {
           peer = message;
           peerId = from;
           helloLate = false;
+          if (!host) spawning.onHostHello(message, positionAtConnect, sim.aircraft()?.identity.title);
           reconsider();
+          break;
+        case "flight-request":
+        case "flight-file":
+          spawning.receive(message);
           break;
         case "cockpit":
         case "cockpit-snapshot":
@@ -222,11 +245,13 @@ export function startSharing(options: {
       sim.io.applyFlightControls(values);
     },
     status() {
+      if (!peerConnected) return undefined;
       const aircraft = sim.aircraft();
-      if (!aircraft || !peerConnected) return undefined;
-      return { aircraft: aircraft.profile.name || aircraft.identity.title, synced: sync !== undefined, notes: notes() };
+      const name = aircraft === undefined ? "Not in a flight" : aircraft.profile.name || aircraft.identity.title;
+      return { aircraft: name, synced: sync !== undefined, notes: notes() };
     },
     stop() {
+      spawning.stop();
       sync?.stop();
       sync = undefined;
       sim.io.stop();

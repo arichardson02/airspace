@@ -46,6 +46,17 @@ It has no Electron imports of its own.
 - **Time** (`clock/`, separate from aircraft): the host (whoever was in the group first) sends its date and time on
   join and every minute, and the other sim's clock is set to it when it's off by more than a minute. Weather isn't
   synced: MSFS 2020 doesn't let outside apps set it.
+- **Co-pilot spawn** (`group/spawning.ts`, `spawn/`, any aircraft): when the host's hello shows the co-pilot isn't in
+  the host's flight (at the menus, another aircraft, or more than 2 km away), the co-pilot sends `flight-request`. The
+  host `flightSave`s and sends `flight-file`. The co-pilot builds a spawn file (`spawn/flight-file.ts`) from the host's
+  non-state sections (aircraft, `ATC_Aircraft.0` parking, position, time, weather, fuel, payload) plus the state
+  sections of its own aircraft's state file (`apron.flt` at a gate). Loading the host's full state breaks complex
+  aircraft, and dropping the state raised the A32NX's gear. It then `flightLoad`s it and drives the menus through
+  `spawn/menu.ts`: a WebSocket on 127.0.0.1:8391 that the menu script (`desktop/sim-package/airspace-menu.ts`) in three
+  menu pages connects to. The script opens the World Map tile, presses FLY (`LAUNCH_FLIGHT`) and READY TO FLY
+  (`LaunchFlowEvent("END_BRIEFING")` from its own page, retried until loaded), all with the sim in the background.
+  Last, `spawn/seat.ts` sets the co-pilot camera from `cameras.cfg`. Without the menu script the Co-op page says
+  what to click. `msfs-paths.ts` finds Community, Official and the game's core packages (Store `XboxGames`, Steam).
 - MSFS 2020 only for now (SimConnect protocol KittyHawk). Everyone in a group flies the same aircraft.
 - Window ↔ connector types are in `contracts/src/desktop.ts`: the connector sends a full `ConnectorStatus` on
   every change, the window sends commands, which the main process parses with `windowCommandSchema` and passes on
