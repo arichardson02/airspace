@@ -33,9 +33,11 @@ description: Airspace's Electron desktop app in desktop/ — the main process ho
   checks its sha256). On launch the packaged app copies the module into the MSFS Community folder
   (`electron/sim-module.ts`, found through `UserCfg.opt`) when it's missing or older. On every launch, dev
   included, `installMenuPackage` writes the `airspace-menu` Community package. It holds copies of three of the
-  game's menu pages (FlowBar, World Map, READY TO FLY), rebuilt from the player's own game files with the menu
-  script added. The script is `sim-package/airspace-menu.ts`, built by esbuild to `dist/sim-package` (ES2017, for
-  the sim's browser engine) and shipped in `resources/sim-package`. The installer isn't code-signed yet, so Windows shows "Windows protected your PC" (More info, then
+  game's menu pages (FlowBar, World Map, READY TO FLY), rebuilt from the player's own game files with a script
+  added: the small, stable loader (`sim-package/loader.ts`). The loader connects to the app, which sends it the menu
+  code (`sim-package/airspace-menu.ts`, set with `setMenuScript`), so changing that code only needs an app restart;
+  only a loader change needs the sim restarted. Both are built by esbuild to `dist/sim-package` (ES2017, for the
+  sim's browser engine, so no Object.entries/values/fromEntries) and shipped in `resources/sim-package`. The installer isn't code-signed yet, so Windows shows "Windows protected your PC" (More info, then
   Run anyway).
 - **Releases:** `.github/workflows/desktop-release.yml` builds on a Windows runner and publishes a GitHub release
   (`desktop-v0.1.<run number>`, marked latest) on every push to `main` that touches `desktop/`, `contracts/`, `ui/`,

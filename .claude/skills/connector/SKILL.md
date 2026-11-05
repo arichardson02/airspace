@@ -52,8 +52,8 @@ It has no Electron imports of its own.
   non-state sections (aircraft, `ATC_Aircraft.0` parking, position, time, weather, fuel, payload) plus the state
   sections of its own aircraft's state file (`apron.flt` at a gate). Loading the host's full state breaks complex
   aircraft, and dropping the state raised the A32NX's gear. It then `flightLoad`s it and drives the menus through
-  `spawn/menu.ts`: a WebSocket on 127.0.0.1:8391 that the menu script (`desktop/sim-package/airspace-menu.ts`) in three
-  menu pages connects to. The script opens the World Map tile, presses FLY (`LAUNCH_FLIGHT`) and READY TO FLY
+  `spawn/menu.ts`: a WebSocket on 127.0.0.1:8391 that the loader in three menu pages connects to; it sends each
+  the menu code (`desktop/sim-package/airspace-menu.ts`), which takes over the connection. The menu code opens the World Map tile, presses FLY (`LAUNCH_FLIGHT`) and READY TO FLY
   (`LaunchFlowEvent("END_BRIEFING")` from its own page, retried until loaded), all with the sim in the background.
   `spawn/seat.ts` sets the co-pilot camera about a second after `CAMERA STATE` reaches the cockpit, from
   `cameras.cfg`. The host's SimBrief pilot ID (their Airspace account setting, saved on the website and fetched

@@ -20,7 +20,7 @@ export type MenuCommand = "open-world-map" | "launch-flight" | "ready-to-fly";
 export type StoredValues = Readonly<Record<string, string | null>>;
 
 /** What the main menu page is asked to do with stored data; it answers with the keys' values. */
-type StoredRequest = { read: readonly string[] } | { write: StoredValues };
+type StoredRequest = { read: readonly string[] } | { write: [string, string | null][] };
 
 export interface MenuLink {
   /** Whether a page of this kind is open (loaded, with our script connected). */
@@ -49,8 +49,19 @@ export function isStoredValues(json: unknown): json is StoredValues {
   return typeof json === "object" && json !== null && Object.values(json).every(isStoredValue);
 }
 
-function isStoredMessage(json: unknown): json is { stored: StoredValues } {
-  return typeof json === "object" && json !== null && "stored" in json && isStoredValues(json.stored);
+function isStoredPair(json: unknown): json is [string, string | null] {
+  return Array.isArray(json) && json.length === 2 && typeof json[0] === "string" && isStoredValue(json[1]);
+}
+
+/** The page's answer: [key, value] pairs, since the sim's browser engine may lack Object.entries. */
+function isStoredMessage(json: unknown): json is { stored: [string, string | null][] } {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    "stored" in json &&
+    Array.isArray(json.stored) &&
+    json.stored.every(isStoredPair)
+  );
 }
 
 /** What a page sends: which page it is when it connects, or stored values it was asked for. */
@@ -58,13 +69,19 @@ function parse(text: string): { page: MenuPage } | { stored: StoredValues } | un
   try {
     const json: unknown = JSON.parse(text);
     if (isPageMessage(json)) return json;
-    return isStoredMessage(json) ? json : undefined;
+    return isStoredMessage(json) ? { stored: Object.fromEntries(json.stored) } : undefined;
   } catch {
     return undefined;
   }
 }
 
 let link: MenuLink | undefined;
+let menuScript: string | undefined;
+
+/** The menu code (built from sim-package/airspace-menu.ts) sent to each page's loader as it connects. */
+export function setMenuScript(code: string): void {
+  menuScript = code;
+}
 
 /** The one menu link for the app, started on first use; it lasts as long as the app. */
 export function menuLink(): MenuLink {
@@ -97,6 +114,7 @@ function startMenuLink(): MenuLink {
       }
       if (pages.has(socket)) return;
       pages.set(socket, message.page);
+      if (menuScript !== undefined) socket.send(JSON.stringify({ script: menuScript }));
       changed();
     });
     socket.on("close", () => {
@@ -127,7 +145,8 @@ function startMenuLink(): MenuLink {
       for (const [socket, kind] of pages) if (kind === page) socket.send(command);
     },
     read: (keys) => ask({ read: keys }),
-    write: async (values) => (await ask({ write: values })) !== undefined,
+    // As pairs: the sim's browser engine may lack Object.entries to read an object back.
+    write: async (values) => (await ask({ write: Object.entries(values) })) !== undefined,
     onChange(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

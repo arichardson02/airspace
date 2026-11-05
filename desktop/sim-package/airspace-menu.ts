@@ -1,29 +1,12 @@
-// Runs inside Flight Simulator's menu pages: the desktop app installs a package that adds it to the main menu
-// (FlowBar), the World Map and READY TO FLY. It connects to the app on 127.0.0.1 and lets it drive the menus while
-// the sim is in the background, taking only these three commands. Built to ES2017 for the sim's browser engine.
-
-// Globals of the menu pages: Coherent GT's bridge to the game, and Asobo's menu flow (common.js).
-declare const Coherent: { trigger(event: string, ...args: unknown[]): void };
-declare function LaunchFlowEvent(eventName: string, ...args: unknown[]): void;
-// The sim's stored data, where aircraft keep settings (the A32NX's SimBrief ID); readable from the main menu.
-declare function GetStoredData(key: string): string | null;
-declare function SetStoredData(key: string, value: string): void;
-declare function DeleteStoredData(key: string): void;
+// The menu code: the desktop app sends it to the loader (sim-package/loader.ts) in each of Flight Simulator's menu
+// pages it's installed in, so it changes with the app and never needs a sim restart. It drives the menus while the
+// sim is in the background, taking a few commands over the loader's connection. Built to ES2017 for the sim's
+// browser engine.
 
 /** A main-menu tile; pressing it the game's way sends its widget id, which changes every launch. */
 interface WidgetMenuButton extends HTMLElement {
   onValidate(): void;
 }
-
-// MENU_PORT in desktop/connector/spawn/menu.ts.
-const PORT = 8391;
-const RECONNECT_MS = 3_000;
-
-const PAGES = new Map([
-  ["/Pages/FlowBar/FlowBarPage.html", "main-menu"],
-  ["/Pages/FlightPlanning/FlightPlanningPage.html", "world-map"],
-  ["/Pages/MissionStartup/MissionStartup.html", "ready-to-fly"],
-]);
 
 function isWidgetMenuButton(element: HTMLElement): element is WidgetMenuButton {
   return "onValidate" in element && typeof element.onValidate === "function";
@@ -70,38 +53,42 @@ function isReadRequest(json: unknown): json is { read: unknown[] } {
   return typeof json === "object" && json !== null && "read" in json && Array.isArray(json.read);
 }
 
-function isWriteRequest(json: unknown): json is { write: Record<string, string | null> } {
+/** A stored-data key and its value; null is a key with nothing stored. */
+type StoredPair = [key: string, value: string | null];
+
+// The sim's browser engine may lack Object.values, entries and fromEntries (an ES2017 build doesn't add them), so
+// stored data goes both ways as [key, value] pairs.
+function isStoredPair(value: unknown): value is StoredPair {
+  return Array.isArray(value) && value.length === 2 && isText(value[0]) && isStoredValue(value[1]);
+}
+
+function isWriteRequest(json: unknown): json is { write: StoredPair[] } {
   return (
     typeof json === "object" &&
     json !== null &&
     "write" in json &&
-    typeof json.write === "object" &&
-    json.write !== null &&
-    Object.values(json.write).every(isStoredValue)
+    Array.isArray(json.write) &&
+    json.write.every(isStoredPair)
   );
 }
 
-function storedValues(keys: readonly string[]): Record<string, string | null> {
-  return Object.fromEntries(keys.map((key) => [key, GetStoredData(key)]));
+function storedValues(keys: readonly string[]): StoredPair[] {
+  return keys.map((key): StoredPair => [key, GetStoredData(key)]);
 }
 
-/** `{"read": [keys]}` or `{"write": {key: value}}` (null deletes); answered with the keys' values. */
-function storedReply(text: string): Record<string, string | null> | undefined {
+/** `{"read": [keys]}` or `{"write": [[key, value]]}` (null deletes); answered with the keys' values. */
+function storedReply(text: string): StoredPair[] | undefined {
   const json: unknown = JSON.parse(text);
   if (isReadRequest(json)) return storedValues(json.read.filter(isText));
   if (!isWriteRequest(json)) return undefined;
-  for (const [key, value] of Object.entries(json.write)) {
+  for (const [key, value] of json.write) {
     if (value === null) DeleteStoredData(key);
     else SetStoredData(key, value);
   }
-  return storedValues(Object.keys(json.write));
+  return storedValues(json.write.map(([key]) => key));
 }
 
-function connect(page: string): void {
-  const socket = new WebSocket(`ws://127.0.0.1:${PORT}`);
-  socket.addEventListener("open", () => {
-    socket.send(JSON.stringify({ page }));
-  });
+window.airspaceMenu = (socket, page) => {
   socket.addEventListener("message", (event: MessageEvent<unknown>) => {
     if (!isText(event.data)) return;
     if (!event.data.startsWith("{")) {
@@ -113,12 +100,4 @@ function connect(page: string): void {
     const stored = storedReply(event.data);
     if (stored !== undefined) socket.send(JSON.stringify({ stored }));
   });
-  socket.addEventListener("close", () => {
-    setTimeout(() => {
-      connect(page);
-    }, RECONNECT_MS);
-  });
-}
-
-const page = PAGES.get(location.pathname);
-if (page !== undefined) connect(page);
+};

@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { windowCommandSchema } from "@fs-career/contracts";
 import { createConnector } from "../connector/app/create.js";
+import { setMenuScript } from "../connector/spawn/menu.js";
 import { logToFile } from "./log.js";
 import { installMenuPackage, installSimModule } from "./sim-module.js";
 import { installUpdate, startUpdater } from "./updater.js";
@@ -110,12 +112,11 @@ async function start(): Promise<void> {
   if (!primary) return;
   try {
     if (app.isPackaged) installSimModule(process.resourcesPath);
-    // Installed in development too (built by scripts/dev.mjs), so both pilots can run the app from source.
-    installMenuPackage(
-      app.isPackaged
-        ? join(process.resourcesPath, "sim-package", "airspace-menu.js")
-        : join(__dirname, "../sim-package/airspace-menu.js"),
-    );
+    // Built by scripts/dev.mjs in development, so both pilots can run the app from source. The sim only gets the
+    // loader; the menu code goes to it at runtime, so changing that never needs a sim restart.
+    const scripts = app.isPackaged ? join(process.resourcesPath, "sim-package") : join(__dirname, "../sim-package");
+    installMenuPackage(join(scripts, "loader.js"));
+    setMenuScript(readFileSync(join(scripts, "airspace-menu.js"), "utf8"));
   } catch {
     // A read-only or missing Community folder only costs the in-sim buttons and the automatic co-op start; the
     // Co-op page then asks the pilot to click through the menus instead.

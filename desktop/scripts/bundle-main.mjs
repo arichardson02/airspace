@@ -76,15 +76,19 @@ export function mainBuildOptions({ release }) {
 export const bundle = (options) => esbuild.build(options);
 
 /**
- * The script the app adds to Flight Simulator's menu pages (sim-package/airspace-menu.ts), for the sim's own browser
- * engine: one plain file, no modules, ES2017.
+ * The scripts for Flight Simulator's menu pages, for the sim's own browser engine (plain files, ES2017): the loader
+ * installed into the sim (dist/sim-package/loader.js) and the menu code the app sends it
+ * (dist/sim-package/airspace-menu.js).
  *
  * @returns {esbuild.BuildOptions}
  */
 export function menuScriptBuildOptions() {
   return {
-    entryPoints: [join(root, "sim-package/airspace-menu.ts")],
-    outfile: join(root, "dist/sim-package/airspace-menu.js"),
+    entryPoints: {
+      loader: join(root, "sim-package/loader.ts"),
+      "airspace-menu": join(root, "sim-package/airspace-menu.ts"),
+    },
+    outdir: join(root, "dist/sim-package"),
     bundle: true,
     format: "iife",
     target: "es2017",
