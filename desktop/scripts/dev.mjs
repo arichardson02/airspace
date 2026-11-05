@@ -59,8 +59,9 @@ const restartElectron = {
 };
 
 // The app bundles the contracts' built output, so they're built first: a pull alone would otherwise leave an old
-// co-op protocol in the bundle, and peers would quietly fall back to sharing only the motion.
-const contracts = spawnSync("pnpm", ["--filter", "@fs-career/contracts", "build"], { stdio: "inherit", shell: true });
+// co-op protocol in the bundle, and peers would quietly fall back to sharing only the motion. pnpm is a .cmd script
+// on Windows, so it runs through the shell, as one fixed command line.
+const contracts = spawnSync("pnpm --filter @fs-career/contracts build", { stdio: "inherit", shell: true });
 if (contracts.status !== 0) throw new Error("Couldn't build the contracts");
 // The menu script is built once; the app installs it into the sim at launch.
 await bundle(menuScriptBuildOptions());
