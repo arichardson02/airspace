@@ -1,7 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { RawBuffer, SimConnectConstants, SimConnectDataType, type SimConnectConnection } from "node-simconnect";
-import { DEFINITION } from "../sim-ids.js";
+import {
+  RawBuffer,
+  SimConnectConstants,
+  SimConnectDataType,
+  SimConnectPeriod,
+  type RecvSimObjectData,
+  type SimConnectConnection,
+} from "node-simconnect";
+import { DEFINITION, REQUEST } from "../sim-ids.js";
 import { findInPackages, type MsfsFolders } from "../msfs-paths.js";
 
 // Puts the co-pilot's camera in the right seat. `CAMERA VIEW TYPE AND INDEX:0` is the view type (1, the pilot views)
@@ -9,6 +16,8 @@ import { findInPackages, type MsfsFolders } from "../msfs-paths.js";
 // its cameras.cfg, VR cameras left out. Proven on the FlightFX C750 and Asobo C172.
 
 const PILOT_VIEWS = 1;
+// CAMERA STATE while the pilot is in the cockpit (menus, loading and READY TO FLY use others).
+const COCKPIT_CAMERA = 2;
 
 /** The co-pilot camera's index in the aircraft's cameras.cfg (livery first, then its base aircraft). */
 export function coPilotView(folders: MsfsFolders, paths: readonly string[]): number | undefined {
@@ -37,4 +46,27 @@ export function takeSeat(handle: SimConnectConnection, view: number): void {
     tagged: false,
   });
   handle.clearDataDefinition(DEFINITION.seat);
+}
+
+/**
+ * Calls `onCockpit` each time the camera goes from elsewhere (the menus, loading, READY TO FLY) into the cockpit.
+ * Returns a function that stops watching.
+ */
+export function watchCockpit(handle: SimConnectConnection, onCockpit: () => void): () => void {
+  handle.addToDataDefinition(DEFINITION.camera, "CAMERA STATE", "number", SimConnectDataType.INT32);
+  let inCockpit: boolean | undefined;
+  const onData = (sample: RecvSimObjectData) => {
+    if (sample.requestID !== REQUEST.camera) return;
+    const now = sample.data.readInt32() === COCKPIT_CAMERA;
+    if (now && inCockpit === false) onCockpit();
+    inCockpit = now;
+  };
+  handle.on("simObjectData", onData);
+  const user = SimConnectConstants.OBJECT_ID_USER;
+  handle.requestDataOnSimObject(REQUEST.camera, DEFINITION.camera, user, SimConnectPeriod.SECOND);
+  return () => {
+    handle.off("simObjectData", onData);
+    handle.requestDataOnSimObject(REQUEST.camera, DEFINITION.camera, user, SimConnectPeriod.NEVER);
+    handle.clearDataDefinition(DEFINITION.camera);
+  };
 }

@@ -4,7 +4,7 @@ import { msfsFolders, type MsfsFolders } from "../msfs-paths.js";
 import { aircraftPaths, composeSpawnFlight, loadedAircraftPath, saveFlight } from "../spawn/flight-file.js";
 import type { AccountKeeper } from "../spawn/account.js";
 import type { MenuLink, StoredValues } from "../spawn/menu.js";
-import { coPilotView, takeSeat } from "../spawn/seat.js";
+import { coPilotView, takeSeat, watchCockpit } from "../spawn/seat.js";
 import { spawnInto, type Spawn, type SpawnState } from "../spawn/spawn.js";
 
 // Puts a co-pilot into the host's flight. When the host's hello shows the co-pilot isn't set up in it (still at the
@@ -13,8 +13,9 @@ import { spawnInto, type Spawn, type SpawnState } from "../spawn/spawn.js";
 
 // A co-pilot this far from the host is at another airport, not just another gate.
 const SAME_AIRPORT_KM = 2;
-// The camera is set once the cockpit has settled after READY TO FLY.
-const SEAT_DELAY_MS = 3_000;
+// The camera moves to the co-pilot seat this soon after the cockpit appears, and again once the flight has
+// started, since the sim can reset the view as it does.
+const SEAT_AFTER_MS = [1_000, 4_000];
 
 type Hello = Extract<CoopMessage, { type: "hello" }>;
 export type SpawningMessage = Extract<CoopMessage, { type: "flight-request" | "flight-file" }>;
@@ -45,7 +46,22 @@ export function startSpawning(options: {
   let requested = false;
   let note: string | undefined;
   let spawn: Spawn | undefined;
-  let seatTimer: ReturnType<typeof setTimeout> | undefined;
+  let seatTimers: ReturnType<typeof setTimeout>[] = [];
+  let stopWatching: (() => void) | undefined;
+
+  // Moves to the co-pilot seat as soon as the camera reaches the cockpit, whenever that is.
+  const watchForCockpit = (paths: readonly string[]) => {
+    stopWatching?.();
+    stopWatching = watchCockpit(handle, () => {
+      stopWatching?.();
+      stopWatching = undefined;
+      seatTimers = SEAT_AFTER_MS.map((delay) =>
+        setTimeout(() => {
+          sitInCoPilotSeat(handle, folders, paths);
+        }, delay),
+      );
+    });
+  };
 
   const setNote = (next: string | undefined) => {
     note = next;
@@ -56,8 +72,13 @@ export function startSpawning(options: {
     try {
       const flt = await saveFlight(handle);
       const paths = folders === undefined ? [] : aircraftPaths(folders, await loadedAircraftPath(handle));
-      const flightPlanAccount = accounts.own(flightPlanAccountKeys());
-      send({ type: "flight-file", flt, aircraftPaths: paths, flightPlanAccount });
+      // Not read yet (Airspace wasn't running while our main menu was open) or not set: nothing to lend.
+      const account = accounts.own(flightPlanAccountKeys());
+      const known = Object.values(account).some((value) => value !== null && value !== "");
+      if (!known && Object.keys(account).length > 0) {
+        console.warn("Our SimBrief account isn't known: start Airspace before Flight Simulator to share flight plans");
+      }
+      send({ type: "flight-file", flt, aircraftPaths: paths, flightPlanAccount: known ? account : {} });
       console.log("Sent our flight to the co-pilot");
     } catch (error) {
       console.warn(
@@ -81,9 +102,6 @@ export function startSpawning(options: {
       case "done":
         console.log("Spawned into the host's flight");
         setNote(undefined);
-        seatTimer = setTimeout(() => {
-          sitInCoPilotSeat(handle, folders, paths);
-        }, SEAT_DELAY_MS);
         break;
     }
   };
@@ -99,9 +117,15 @@ export function startSpawning(options: {
       return;
     }
     // Written through the main menu before the flight launches; a co-pilot already in a flight keeps their own.
-    if (Object.keys(account).length > 0 && (await accounts.borrow(account))) {
-      console.log("Using the host's flight-plan account for the uplink");
+    if (Object.keys(account).length > 0) {
+      const borrowed = await accounts.borrow(account);
+      console.log(
+        borrowed
+          ? "Using the host's SimBrief account for the flight plan uplink"
+          : "Couldn't use the host's SimBrief account: the main menu wasn't open",
+      );
     }
+    watchForCockpit(paths);
     spawn?.stop();
     spawn = spawnInto({
       handle,
@@ -136,10 +160,13 @@ export function startSpawning(options: {
     reset() {
       requested = false;
       note = undefined;
+      accounts.release();
     },
     stop() {
       spawn?.stop();
-      clearTimeout(seatTimer);
+      stopWatching?.();
+      for (const timer of seatTimers) clearTimeout(timer);
+      accounts.release();
     },
   };
 }
