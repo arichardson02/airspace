@@ -18,7 +18,7 @@ export function coPilotView(folders: MsfsFolders, paths: readonly string[]): num
     if (cameras === undefined || !existsSync(cameras)) continue;
     const pilotCameras = readFileSync(cameras, "latin1")
       .split(/^\s*\[CAMERADEFINITION\.\d+\]/im)
-      .filter((block) => /SubCategory\s*=\s*"Pilot"/i.test(block));
+      .filter((block) => /SubCategory\s*=\s*"Pilot"/i.test(block) && !/SubCategoryItem\s*=\s*"PilotVR"/i.test(block));
     const index = pilotCameras.findIndex((block) => /SubCategoryItem\s*=\s*"CoPilot"/i.test(block));
     if (index >= 0) return index + 1;
   }
