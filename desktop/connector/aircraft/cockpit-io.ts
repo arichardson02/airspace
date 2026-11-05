@@ -64,6 +64,9 @@ const readValue = (control: Control, raw: number): number => {
   return (Math.trunc(arincWord.getFloat32(0)) >>> (control.arincBit - 1)) & 1;
 };
 
+// How many request-id generations the reader cycles through (see `requestId`).
+const GENERATIONS = 10;
+
 export function createCockpitIo(handle: SimConnectConnection, events: SimEvents, simCode: SimCode): CockpitIo {
   let profile: AircraftProfile | undefined;
   let handlers: CockpitHandlers | undefined;
@@ -158,12 +161,17 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
     }
   };
 
+  // Every start reads with fresh request ids (the base id × 10 + a generation 0-9). A sample still on its way for
+  // the previous aircraft's layout then doesn't match and is dropped, instead of being read against the new one.
+  let generation = 0;
+  const requestId = (base: number) => base * GENERATIONS + generation;
+
   handle.on("simObjectData", (sample) => {
-    if (sample.requestID === REQUEST.flightControls) {
+    if (sample.requestID === requestId(REQUEST.flightControls)) {
       flightValues = (profile?.flightControls ?? []).map(() => sample.data.readFloat64());
       return;
     }
-    if (sample.requestID !== REQUEST.cockpit) return;
+    if (sample.requestID !== requestId(REQUEST.cockpit)) return;
     // Tagged: only the datums that changed, each as its id and value.
     for (let i = 0; i < sample.defineCount; i++) {
       const slot = slots.at(Math.max(0, sample.data.readInt32()));
@@ -186,10 +194,15 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
   const stopReading = () => {
     const user = SimConnectConstants.OBJECT_ID_USER;
     if (defined.has(DEFINITION.cockpit)) {
-      handle.requestDataOnSimObject(REQUEST.cockpit, DEFINITION.cockpit, user, SimConnectPeriod.NEVER);
+      handle.requestDataOnSimObject(requestId(REQUEST.cockpit), DEFINITION.cockpit, user, SimConnectPeriod.NEVER);
     }
     if (defined.has(DEFINITION.flightControls)) {
-      handle.requestDataOnSimObject(REQUEST.flightControls, DEFINITION.flightControls, user, SimConnectPeriod.NEVER);
+      handle.requestDataOnSimObject(
+        requestId(REQUEST.flightControls),
+        DEFINITION.flightControls,
+        user,
+        SimConnectPeriod.NEVER,
+      );
     }
     for (const definition of defined) handle.clearDataDefinition(definition);
     defined.clear();
@@ -198,6 +211,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
   return {
     start(next, nextHandlers) {
       if (profile) stopReading();
+      generation = (generation + 1) % GENERATIONS;
       profile = next;
       handlers = nextHandlers;
       values.clear();
@@ -250,7 +264,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
       const user = SimConnectConstants.OBJECT_ID_USER;
       if (defined.has(DEFINITION.cockpit)) {
         handle.requestDataOnSimObject(
-          REQUEST.cockpit,
+          requestId(REQUEST.cockpit),
           DEFINITION.cockpit,
           user,
           SimConnectPeriod.SIM_FRAME,
@@ -261,7 +275,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
       }
       if (next.flightControls.length > 0) {
         handle.requestDataOnSimObject(
-          REQUEST.flightControls,
+          requestId(REQUEST.flightControls),
           DEFINITION.flightControls,
           user,
           SimConnectPeriod.SIM_FRAME,

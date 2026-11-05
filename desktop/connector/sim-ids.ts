@@ -29,6 +29,7 @@ export const DEFINITION = {
 export const REQUEST = {
   flight: 10,
   identity: 200,
+  /** The cockpit reader's bases: it requests with base × 10 + a generation (3000-3009, 3020-3029). */
   cockpit: 300,
   flightControls: 302,
   mcdu: 303,
