@@ -64,6 +64,9 @@ const readValue = (control: Control, raw: number): number => {
   return (Math.trunc(arincWord.getFloat32(0)) >>> (control.arincBit - 1)) & 1;
 };
 
+// How long a flip waits for the sim to report the new position before another may be sent.
+const FLIP_WAIT_MS = 1_500;
+
 // How many request-id generations the reader cycles through (see `requestId`).
 const GENERATIONS = 10;
 
@@ -120,6 +123,20 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
 
   const differs = (control: Control, value: number) => values.get(control.key) !== value;
 
+  // Toggles, pulses and H:event presses flip a control, so they're only sent when it isn't where it's going. Until
+  // the sim reports the new position the old one is still read, and a second write (a snapshot, then a change) would
+  // flip it straight back, as it did to both GEN buttons. So one flip per target is sent until the reading arrives or
+  // FLIP_WAIT_MS passes.
+  const flipping = new Map<string, { target: number; until: number }>();
+  const shouldFlip = (control: Control, value: number): boolean => {
+    if (!differs(control, value)) return false;
+    const pending = flipping.get(control.key);
+    const now = Date.now();
+    if (pending?.target === value && now < pending.until) return false;
+    flipping.set(control.key, { target: value, until: now + FLIP_WAIT_MS });
+    return true;
+  };
+
   const apply = (control: Control, write: Write, value: number): void => {
     switch (write.kind) {
       case "datum":
@@ -129,10 +146,10 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
         events.transmit(write.name, Math.round(value * write.scale + write.offset));
         break;
       case "toggle":
-        if (differs(control, value)) events.transmit(write.name, write.data);
+        if (shouldFlip(control, value)) events.transmit(write.name, write.data);
         break;
       case "pulse":
-        if (differs(control, value)) {
+        if (shouldFlip(control, value)) {
           setDatum(write.target, 1);
           setTimeout(() => {
             setDatum(write.target, 0);
@@ -146,7 +163,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
         break;
       }
       case "h-event":
-        if (write.whenDifferent && !differs(control, value)) break;
+        if (write.whenDifferent && !shouldFlip(control, value)) break;
         simCode.run(`(>H:${write.press})`);
         if (write.release !== undefined) {
           const release = write.release;
@@ -182,6 +199,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
         const value = readValue(control, raw);
         if (values.get(control.key) === value) continue;
         values.set(control.key, value);
+        flipping.delete(control.key);
         handlers?.onValue(control, value);
       }
     }
@@ -215,6 +233,7 @@ export function createCockpitIo(handle: SimConnectConnection, events: SimEvents,
       profile = next;
       handlers = nextHandlers;
       values.clear();
+      flipping.clear();
       actionsByEvent.clear();
       applied = [];
       flightValues = [];
