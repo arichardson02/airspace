@@ -2,6 +2,7 @@ import type { SimConnectConnection } from "node-simconnect";
 import type { CockpitStatus, CoopMessage, FlightState, GroupPeer } from "@fs-career/contracts";
 import { createCockpitIo } from "../aircraft/cockpit-io.js";
 import { watchAircraft } from "../aircraft/detect.js";
+import { flightPlanAccountKeys } from "../aircraft/profiles.js";
 import type { AircraftProfile, FmsLink } from "../aircraft/profile.js";
 import { watchClock } from "../clock/clock.js";
 import { watchControls } from "../flight/controls.js";
@@ -9,6 +10,8 @@ import { connectFlightState } from "../flight/flight-state.js";
 import { createFollower } from "../flight/follower.js";
 import { connectSimCode } from "../sim-code.js";
 import { createSimEvents } from "../sim-ids.js";
+import { accountKeeper } from "../spawn/account.js";
+import { menuLink } from "../spawn/menu.js";
 import { type GroupSession, joinGroup } from "./group-session.js";
 import { startSharing, type CoopSim, type Sharing } from "./sharing.js";
 
@@ -86,6 +89,8 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
     simCode,
     handle,
     position: () => (latest ? { latitude: latest.latitude, longitude: latest.longitude } : undefined),
+    // Started with the sim connection, so the captain's account is known (from the main menu) before anyone joins.
+    accounts: accountKeeper(menuLink(), flightPlanAccountKeys()),
   };
 
   // Never leave the aircraft frozen from an earlier run.

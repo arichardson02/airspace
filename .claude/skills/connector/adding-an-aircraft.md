@@ -11,7 +11,8 @@ the escape hatch). The FlyByWire A32NX in `aircraft/a32nx/` is the worked exampl
 2. **Write the profile.** `index.ts` exports an `AircraftProfile`: an `id`, a `version`, a display `name`, the
    `identity` datums and `matches()` (prefer the ATC model and the aircraft's own variables: liveries change the
    title and SimObjects folder), `areas` of controls in power-up order, `aux` values used by custom writes, `actions`
-   for presses with no lasting state, `flightControls` for what only the pilot flying sets, and an optional `fms`.
+   for presses with no lasting state, `flightControls` for what only the pilot flying sets, an optional `fms`, and
+   `flightPlanAccount` when the aircraft downloads flight plans with an account kept in the sim's stored data.
 3. **Map each control** with a stable `key` (`<panel>.<thing>`), a `read` datum, and a `write`:
    - the click writes an L:var → `toDatum()`;
    - it fires a K or custom event → `event()` (with scaling) or `toggle()`

@@ -5,6 +5,10 @@
 // Globals of the menu pages: Coherent GT's bridge to the game, and Asobo's menu flow (common.js).
 declare const Coherent: { trigger(event: string, ...args: unknown[]): void };
 declare function LaunchFlowEvent(eventName: string, ...args: unknown[]): void;
+// The sim's stored data, where aircraft keep settings (the A32NX's SimBrief ID); readable from the main menu.
+declare function GetStoredData(key: string): string | null;
+declare function SetStoredData(key: string, value: string): void;
+declare function DeleteStoredData(key: string): void;
 
 /** A main-menu tile; pressing it the game's way sends its widget id, which changes every launch. */
 interface WidgetMenuButton extends HTMLElement {
@@ -58,13 +62,56 @@ const COMMANDS = new Map<string, () => void>([
   ],
 ]);
 
+function isStoredValue(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isReadRequest(json: unknown): json is { read: unknown[] } {
+  return typeof json === "object" && json !== null && "read" in json && Array.isArray(json.read);
+}
+
+function isWriteRequest(json: unknown): json is { write: Record<string, string | null> } {
+  return (
+    typeof json === "object" &&
+    json !== null &&
+    "write" in json &&
+    typeof json.write === "object" &&
+    json.write !== null &&
+    Object.values(json.write).every(isStoredValue)
+  );
+}
+
+function storedValues(keys: readonly string[]): Record<string, string | null> {
+  return Object.fromEntries(keys.map((key) => [key, GetStoredData(key)]));
+}
+
+/** `{"read": [keys]}` or `{"write": {key: value}}` (null deletes); answered with the keys' values. */
+function storedReply(text: string): Record<string, string | null> | undefined {
+  const json: unknown = JSON.parse(text);
+  if (isReadRequest(json)) return storedValues(json.read.filter(isText));
+  if (!isWriteRequest(json)) return undefined;
+  for (const [key, value] of Object.entries(json.write)) {
+    if (value === null) DeleteStoredData(key);
+    else SetStoredData(key, value);
+  }
+  return storedValues(Object.keys(json.write));
+}
+
 function connect(page: string): void {
   const socket = new WebSocket(`ws://127.0.0.1:${PORT}`);
   socket.addEventListener("open", () => {
     socket.send(JSON.stringify({ page }));
   });
   socket.addEventListener("message", (event: MessageEvent<unknown>) => {
-    if (isText(event.data)) COMMANDS.get(event.data)?.();
+    if (!isText(event.data)) return;
+    if (!event.data.startsWith("{")) {
+      COMMANDS.get(event.data)?.();
+      return;
+    }
+    // Stored data only reads back on the main menu page.
+    if (page !== "main-menu") return;
+    const stored = storedReply(event.data);
+    if (stored !== undefined) socket.send(JSON.stringify({ stored }));
   });
   socket.addEventListener("close", () => {
     setTimeout(() => {

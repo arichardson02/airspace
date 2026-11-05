@@ -2,7 +2,8 @@ import type { CoopMessage } from "@fs-career/contracts";
 import type { SimConnectConnection } from "node-simconnect";
 import { msfsFolders, type MsfsFolders } from "../msfs-paths.js";
 import { aircraftPaths, composeSpawnFlight, loadedAircraftPath, saveFlight } from "../spawn/flight-file.js";
-import type { MenuLink } from "../spawn/menu.js";
+import type { AccountKeeper } from "../spawn/account.js";
+import type { MenuLink, StoredValues } from "../spawn/menu.js";
 import { coPilotView, takeSeat } from "../spawn/seat.js";
 import { spawnInto, type Spawn, type SpawnState } from "../spawn/spawn.js";
 
@@ -33,10 +34,13 @@ export interface Spawning {
 export function startSpawning(options: {
   handle: SimConnectConnection;
   menu: MenuLink;
+  accounts: AccountKeeper;
+  /** The loaded aircraft's flight-plan account keys (none for most aircraft). */
+  flightPlanAccountKeys: () => readonly string[];
   send: (message: CoopMessage) => void;
   changed: () => void;
 }): Spawning {
-  const { handle, menu, send, changed } = options;
+  const { handle, menu, accounts, flightPlanAccountKeys, send, changed } = options;
   const folders = msfsFolders();
   let requested = false;
   let note: string | undefined;
@@ -52,7 +56,8 @@ export function startSpawning(options: {
     try {
       const flt = await saveFlight(handle);
       const paths = folders === undefined ? [] : aircraftPaths(folders, await loadedAircraftPath(handle));
-      send({ type: "flight-file", flt, aircraftPaths: paths });
+      const flightPlanAccount = accounts.own(flightPlanAccountKeys());
+      send({ type: "flight-file", flt, aircraftPaths: paths, flightPlanAccount });
       console.log("Sent our flight to the co-pilot");
     } catch (error) {
       console.warn(
@@ -83,7 +88,7 @@ export function startSpawning(options: {
     }
   };
 
-  const loadHostFlight = (flt: string, paths: readonly string[]) => {
+  const loadHostFlight = async (flt: string, paths: readonly string[], account: StoredValues) => {
     if (folders === undefined) {
       setNote("Couldn't find Flight Simulator's packages to load the host's flight");
       return;
@@ -92,6 +97,10 @@ export function startSpawning(options: {
     if ("missing" in file) {
       setNote(`Install the ${file.missing} to fly with the host`);
       return;
+    }
+    // Written through the main menu before the flight launches; a co-pilot already in a flight keeps their own.
+    if (Object.keys(account).length > 0 && (await accounts.borrow(account))) {
+      console.log("Using the host's flight-plan account for the uplink");
     }
     spawn?.stop();
     spawn = spawnInto({
@@ -121,7 +130,7 @@ export function startSpawning(options: {
     },
     receive(message) {
       if (message.type === "flight-request") void sendFlight();
-      else loadHostFlight(message.flt, message.aircraftPaths);
+      else void loadHostFlight(message.flt, message.aircraftPaths, message.flightPlanAccount);
     },
     note: () => note,
     reset() {

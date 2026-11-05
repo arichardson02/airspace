@@ -145,6 +145,11 @@ export interface AircraftProfile {
   /** Controls only the pilot flying sets (thrust levers, trim, fuel); sent every frame and written on the follower. */
   flightControls: Control[];
   fms?: FmsSync;
+  /**
+   * The sim's stored-data keys (GetStoredData) naming the account the aircraft downloads flight plans with. In co-op
+   * the co-pilot borrows the captain's, so a mirrored uplink loads the captain's plan.
+   */
+  flightPlanAccount?: readonly string[];
 }
 
 /** The SimConnect name of a datum. */

@@ -5,6 +5,7 @@ import type { AircraftProfile, FmsLink } from "../aircraft/profile.js";
 import type { ClockLink } from "../clock/clock.js";
 import type { SimConnectConnection } from "node-simconnect";
 import type { SimCode } from "../sim-code.js";
+import type { AccountKeeper } from "../spawn/account.js";
 import { menuLink } from "../spawn/menu.js";
 import { startCockpitSync, type CockpitSync } from "./cockpit-sync.js";
 import { startSpawning, type SpawningMessage } from "./spawning.js";
@@ -37,6 +38,7 @@ export interface CoopSim {
   handle: SimConnectConnection;
   /** Where the aircraft is now, once the flight state has been read. */
   position(): { latitude: number; longitude: number } | undefined;
+  accounts: AccountKeeper;
 }
 
 export interface Sharing {
@@ -75,7 +77,14 @@ export function startSharing(options: {
   // Where our aircraft was when the co-pilot connected, before following could move it.
   let positionAtConnect: { latitude: number; longitude: number } | undefined;
   const historyTimers: ReturnType<typeof setTimeout>[] = [];
-  const spawning = startSpawning({ handle: sim.handle, menu: menuLink(), send, changed });
+  const spawning = startSpawning({
+    handle: sim.handle,
+    menu: menuLink(),
+    accounts: sim.accounts,
+    flightPlanAccountKeys: () => sim.aircraft()?.profile.flightPlanAccount ?? [],
+    send,
+    changed,
+  });
 
   const compatible = (): boolean => {
     const aircraft = sim.aircraft();

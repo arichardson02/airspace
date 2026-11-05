@@ -55,7 +55,11 @@ It has no Electron imports of its own.
   `spawn/menu.ts`: a WebSocket on 127.0.0.1:8391 that the menu script (`desktop/sim-package/airspace-menu.ts`) in three
   menu pages connects to. The script opens the World Map tile, presses FLY (`LAUNCH_FLIGHT`) and READY TO FLY
   (`LaunchFlowEvent("END_BRIEFING")` from its own page, retried until loaded), all with the sim in the background.
-  Last, `spawn/seat.ts` sets the co-pilot camera from `cameras.cfg`. Without the menu script the Co-op page says
+  Last, `spawn/seat.ts` sets the co-pilot camera from `cameras.cfg`. A profile's `flightPlanAccount` keys (the
+  A32NX's SimBrief ID and Navigraph username, in the sim's stored data) travel with the flight file:
+  `spawn/account.ts` reads the captain's from the main menu, and the co-pilot borrows them while spawning, so a
+  mirrored INIT uplink loads the captain's plan. The co-pilot's own values are put back the next time their main
+  menu opens; until then they're kept in `%APPDATA%/Airspace/borrowed-flight-plan-account.json`. Without the menu script the Co-op page says
   what to click. `msfs-paths.ts` finds Community, Official and the game's core packages (Store `XboxGames`, Steam).
 - MSFS 2020 only for now (SimConnect protocol KittyHawk). Everyone in a group flies the same aircraft.
 - Window ↔ connector types are in `contracts/src/desktop.ts`: the connector sends a full `ConnectorStatus` on

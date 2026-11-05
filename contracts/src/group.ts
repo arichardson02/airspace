@@ -42,7 +42,7 @@ export interface FlightState {
 }
 
 /** Bumped whenever the co-op messages change in a way an older connector can't follow. */
-export const COOP_PROTOCOL = 4;
+export const COOP_PROTOCOL = 5;
 
 /** One cockpit control's value. `seq` orders changes to the same control; the higher one wins. */
 export interface CockpitValue {
@@ -109,4 +109,11 @@ export type CoopMessage =
   | { type: "flight-request" }
   // The host's flight, for the co-pilot's sim to load: the host's saved .FLT text, and where the aircraft lives
   // inside its package: the livery's aircraft.cfg, then its base aircraft's (`SimObjects\Airplanes\<folder>\aircraft.cfg`).
-  | { type: "flight-file"; flt: string; aircraftPaths: string[] };
+  // `flightPlanAccount` is the host's account for the aircraft's flight-plan uplink (stored-data key to value), which
+  // the co-pilot borrows so a mirrored uplink loads the host's plan.
+  | {
+      type: "flight-file";
+      flt: string;
+      aircraftPaths: string[];
+      flightPlanAccount: Record<string, string | null>;
+    };

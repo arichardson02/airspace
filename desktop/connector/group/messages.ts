@@ -135,7 +135,19 @@ function isSpawnMessage(
     "aircraftPaths" in json &&
     Array.isArray(json.aircraftPaths) &&
     json.aircraftPaths.length <= 4 &&
-    json.aircraftPaths.every((path) => isText(path, MAX_PATH_LENGTH))
+    json.aircraftPaths.every((path) => isText(path, MAX_PATH_LENGTH)) &&
+    "flightPlanAccount" in json &&
+    isAccount(json.flightPlanAccount)
+  );
+}
+
+function isAccount(json: unknown): json is Record<string, string | null> {
+  return (
+    isObject(json) &&
+    Object.keys(json).length <= 8 &&
+    Object.entries(json).every(
+      ([key, value]) => key.length <= MAX_KEY_LENGTH && (value === null || isText(value, MAX_TEXT_LENGTH)),
+    )
   );
 }
 
