@@ -1,7 +1,7 @@
 // Development: serves the window's page from Vite (with hot reload), and rebuilds and restarts Electron
 // whenever the main process or the connector changes. The connector reads desktop/.env.
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import * as esbuild from "esbuild";
@@ -58,6 +58,10 @@ const restartElectron = {
   },
 };
 
+// The app bundles the contracts' built output, so they're built first: a pull alone would otherwise leave an old
+// co-op protocol in the bundle, and peers would quietly fall back to sharing only the motion.
+const contracts = spawnSync("pnpm", ["--filter", "@fs-career/contracts", "build"], { stdio: "inherit", shell: true });
+if (contracts.status !== 0) throw new Error("Couldn't build the contracts");
 // The menu script is built once; the app installs it into the sim at launch.
 await bundle(menuScriptBuildOptions());
 const options = mainBuildOptions({ release: false });

@@ -212,13 +212,15 @@ export function startSharing(options: {
       switch (message.type) {
         case "hello":
           console.log(
-            `Co-pilot's aircraft: ${message.aircraft} (${message.profile ?? "no profile"} v${message.profileVersion})`,
+            `Co-pilot's aircraft: ${message.aircraft} (${message.profile ?? "no profile"} v${message.profileVersion}, ` +
+              `protocol ${message.protocol}, ours ${COOP_PROTOCOL})`,
           );
           peer = message;
           peerId = from;
           helloLate = false;
           if (!host) spawning.onHostHello(message, positionAtConnect, sim.aircraft()?.identity.title);
           reconsider();
+          if (!sync) console.log(motionOnlyReason(sim.aircraft(), peer, helloLate));
           break;
         case "flight-request":
         case "flight-file":
