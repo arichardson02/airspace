@@ -2,7 +2,6 @@ import type { SimConnectConnection } from "node-simconnect";
 import type { CockpitStatus, CoopMessage, FlightState, GroupPeer } from "@fs-career/contracts";
 import { createCockpitIo } from "../aircraft/cockpit-io.js";
 import { watchAircraft } from "../aircraft/detect.js";
-import { flightPlanAccountKeys } from "../aircraft/profiles.js";
 import type { AircraftProfile, FmsLink } from "../aircraft/profile.js";
 import { watchClock } from "../clock/clock.js";
 import { watchControls } from "../flight/controls.js";
@@ -31,6 +30,8 @@ export interface CoopJoinOptions {
   token: string;
   /** The signed-in pilot; their user ID is the pilot ID. */
   pilot: GroupPeer;
+  /** Their SimBrief pilot ID right now, from their account settings on the website. */
+  simbriefPilotId(): Promise<string | null>;
   onChange(update: CoopUpdate): void;
   /** The group ended without us leaving, e.g. the connection to the co-op server dropped. */
   onEnded(reason: string): void;
@@ -89,8 +90,8 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
     simCode,
     handle,
     position: () => (latest ? { latitude: latest.latitude, longitude: latest.longitude } : undefined),
-    // Started with the sim connection, so the captain's account is known (from the main menu) before anyone joins.
-    accounts: accountKeeper(menuLink(), flightPlanAccountKeys()),
+    // Started with the sim connection, so a SimBrief ID borrowed in an earlier session goes back at the main menu.
+    accounts: accountKeeper(menuLink()),
   };
 
   // Never leave the aircraft frozen from an earlier run.
@@ -122,7 +123,13 @@ export function createCoop(handle: SimConnectConnection, signalingUrl: string): 
         const update = { peers: [...peers.values()], flyer, dualInputAt };
         options.onChange(cockpit ? { ...update, cockpit } : update);
       };
-      sharing = startSharing({ sim, self, send: (message) => send(message), changed });
+      sharing = startSharing({
+        sim,
+        self,
+        simbriefPilotId: () => options.simbriefPilotId(),
+        send: (message) => send(message),
+        changed,
+      });
       notify = changed;
 
       const warnDualInput = (now: number): boolean => {

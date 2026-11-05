@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  /** Their SimBrief pilot ID, set in Settings (digits only); co-op uses the captain's for the flight-plan uplink. */
+  simbriefPilotId: text("simbrief_pilot_id"),
   ...timestamps,
 });
 

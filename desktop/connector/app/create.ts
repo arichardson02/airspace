@@ -1,5 +1,5 @@
 import { open, Protocol, SimConnectException, type SimConnectConnection } from "node-simconnect";
-import { ensureSignedIn, signOut } from "../auth/sign-in.js";
+import { ensureSignedIn, getPilot, signOut } from "../auth/sign-in.js";
 import { BackendClient } from "../backend-client.js";
 import { config } from "../config.js";
 import { createCoop } from "../group/group-flight.js";
@@ -24,6 +24,7 @@ export function createConnector(options: ConnectorOptions): WiredConnector {
     simRetryMs: config.simRetryMs,
     signIn: (signal, onCode) => ensureSignedIn(config.backendUrl, { signal, onCode }),
     signOut,
+    currentPilot: (token) => getPilot(config.backendUrl, token),
     openBrowser: options.openBrowser,
     // The website and the API share an origin; the API lives under /api.
     dashboardUrl: `${new URL(config.backendUrl).origin}/app`,

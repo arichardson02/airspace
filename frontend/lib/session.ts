@@ -7,10 +7,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  simbriefPilotId: string | null;
 }
 
 interface Session {
-  user: User;
+  user: Omit<User, "simbriefPilotId"> & { simbriefPilotId?: string | null };
 }
 
 const backendUrl = process.env.BACKEND_URL ?? "http://localhost:3000";
@@ -27,7 +28,8 @@ function isSession(body: unknown): body is Session {
     "name" in user &&
     typeof user.name === "string" &&
     "email" in user &&
-    typeof user.email === "string"
+    typeof user.email === "string" &&
+    (!("simbriefPilotId" in user) || user.simbriefPilotId === null || typeof user.simbriefPilotId === "string")
   );
 }
 
@@ -44,7 +46,8 @@ const getCurrentUser = cache(async (): Promise<User | null> => {
 
   const body: unknown = await response.json();
   if (!isSession(body)) return null;
-  return { id: body.user.id, name: body.user.name, email: body.user.email };
+  const { id, name, email, simbriefPilotId } = body.user;
+  return { id, name, email, simbriefPilotId: simbriefPilotId ?? null };
 });
 
 /** Like getCurrentUser, but sends visitors who aren't signed in to /login, then back to `returnTo`. */

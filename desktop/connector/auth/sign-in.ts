@@ -14,6 +14,8 @@ export interface Pilot {
   id: string;
   name: string;
   email: string;
+  /** Their SimBrief pilot ID from their account settings. */
+  simbriefPilotId: string | null;
 }
 
 export interface DeviceCode {
@@ -64,7 +66,7 @@ export async function signOut(): Promise<void> {
 }
 
 /** The pilot the token belongs to, or undefined when the session is gone. Throws when the backend can't be reached. */
-async function getPilot(backendUrl: string, token: string, signal?: AbortSignal): Promise<Pilot | undefined> {
+export async function getPilot(backendUrl: string, token: string, signal?: AbortSignal): Promise<Pilot | undefined> {
   const response = await fetch(`${backendUrl}/auth/get-session`, {
     headers: { authorization: `Bearer ${token}` },
     signal,
@@ -75,7 +77,8 @@ async function getPilot(backendUrl: string, token: string, signal?: AbortSignal)
   const session: unknown = await response.json();
   if (session === null) return undefined;
   if (!isSession(session)) throw new Error("Checking the sign-in failed: the backend sent an unexpected response");
-  return { id: session.user.id, name: session.user.name, email: session.user.email };
+  const { id, name, email, simbriefPilotId } = session.user;
+  return { id, name, email, simbriefPilotId: simbriefPilotId ?? null };
 }
 
 async function signInWithDeviceCode(backendUrl: string, { onCode, signal }: SignInOptions): Promise<string> {
@@ -202,11 +205,13 @@ function isCredentials(json: unknown): json is Credentials {
   return typeof json === "object" && json !== null && "token" in json && typeof json.token === "string";
 }
 
-function isSession(json: unknown): json is { user: Pilot } {
+function isSession(
+  json: unknown,
+): json is { user: Omit<Pilot, "simbriefPilotId"> & { simbriefPilotId?: string | null } } {
   return typeof json === "object" && json !== null && "user" in json && isPilot(json.user);
 }
 
-function isPilot(json: unknown): json is Pilot {
+function isPilot(json: unknown): json is Omit<Pilot, "simbriefPilotId"> & { simbriefPilotId?: string | null } {
   return (
     typeof json === "object" &&
     json !== null &&
@@ -215,7 +220,8 @@ function isPilot(json: unknown): json is Pilot {
     "name" in json &&
     typeof json.name === "string" &&
     "email" in json &&
-    typeof json.email === "string"
+    typeof json.email === "string" &&
+    (!("simbriefPilotId" in json) || json.simbriefPilotId === null || typeof json.simbriefPilotId === "string")
   );
 }
 

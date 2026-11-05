@@ -17,3 +17,6 @@ description: How sign-in works across Airspace — Better Auth with email and pa
   sends as `Authorization: Bearer`. It's saved in `%APPDATA%\Airspace\credentials.json`. The connector side is
   `desktop/connector/auth/sign-in.ts`.
 - Only the app pages need sign-in on the website. The marketing page stays public.
+- Extra user fields are Better Auth `user.additionalFields` (`auth.ts`), columns on `users`, returned with the
+  session and set through Better Auth's own `update-user`. `simbriefPilotId` (digits, `simbriefPilotIdSchema` in
+  contracts) is set in the website's Settings; the connector reads it from the session for co-op.

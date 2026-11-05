@@ -15,5 +15,5 @@ export default function Page(): ReactElement {
 
 async function SignedInSettings() {
   const user = await requireUser("/app/settings");
-  return <SettingsPage name={user.name} email={user.email} />;
+  return <SettingsPage name={user.name} email={user.email} simbriefPilotId={user.simbriefPilotId} />;
 }

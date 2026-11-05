@@ -30,6 +30,6 @@ export const a32nx: AircraftProfile = {
   actions: [...glareshieldActions, ...pedestalActions],
   flightControls,
   fms: mcdu,
-  // The INIT uplink asks SimBrief for this pilot ID first, else the Navigraph username's latest plan.
-  flightPlanAccount: ["A32NX_CONFIG_OVERRIDE_SIMBRIEF_USERID", "A32NX_NAVIGRAPH_USERNAME"],
+  // The INIT uplink asks SimBrief for this pilot ID first (before the flyPad's Navigraph username).
+  simbriefPilotIdKey: "A32NX_CONFIG_OVERRIDE_SIMBRIEF_USERID",
 };

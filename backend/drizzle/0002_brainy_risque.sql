@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "simbrief_pilot_id" text;

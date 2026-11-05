@@ -3,17 +3,16 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { isStoredValues, type MenuLink, type StoredValues } from "./menu.js";
 
-// The account an aircraft downloads flight plans with (the A32NX's SimBrief ID, kept in the sim's stored data). Each
-// sim downloads its own uplink, so a mirrored INIT REQUEST only loads the captain's plan if the co-pilot's sim asks
-// for the captain's account. The co-pilot borrows it while spawning (through the main menu, before the aircraft
-// loads). Once the session ends their own values are put back through the main menu, now or the next time it opens;
-// they're kept in a file until then so a closed app doesn't lose them.
+// Aircraft download their flight-plan uplink with a SimBrief pilot ID kept in the sim's stored data (the A32NX's
+// flyPad setting), and each sim downloads its own. So a mirrored INIT REQUEST only loads the captain's plan if the
+// co-pilot's sim asks with the captain's ID, which comes from the captain's Airspace account. The co-pilot's sim
+// borrows it while spawning (through the main menu, before the aircraft loads). Once the session ends their own
+// value is put back through the main menu, now or the next time it opens; it's kept in a file until then so a
+// closed app doesn't lose it.
 
 const RESTORE_FILE = join(process.env.APPDATA ?? tmpdir(), "Airspace", "borrowed-flight-plan-account.json");
 
 export interface AccountKeeper {
-  /** Our own values for `keys`, as read the last time the main menu was open. */
-  own(keys: readonly string[]): StoredValues;
   /** Uses the captain's values for the co-op session; false when the main menu isn't open to write them. */
   borrow(values: StoredValues): Promise<boolean>;
   /** The session ended: our own values go back now if the main menu is open, else the next time it opens. */
@@ -32,14 +31,13 @@ function savedOriginals(): StoredValues | undefined {
 
 let keeper: AccountKeeper | undefined;
 
-/** The one account keeper for the app; `keys` are every profile's flight-plan account keys. */
-export function accountKeeper(menu: MenuLink, keys: readonly string[]): AccountKeeper {
-  keeper ??= startKeeper(menu, keys);
+/** The one account keeper for the app. */
+export function accountKeeper(menu: MenuLink): AccountKeeper {
+  keeper ??= startKeeper(menu);
   return keeper;
 }
 
-function startKeeper(menu: MenuLink, keys: readonly string[]): AccountKeeper {
-  let own: StoredValues = {};
+function startKeeper(menu: MenuLink): AccountKeeper {
   let atMainMenu = false;
   // While borrowing, the main menu opening (MSFS reloads it around a flight) mustn't put our own values back.
   let borrowing = false;
@@ -48,25 +46,17 @@ function startKeeper(menu: MenuLink, keys: readonly string[]): AccountKeeper {
     const originals = savedOriginals();
     if (originals === undefined || !(await menu.write(originals))) return;
     rmSync(RESTORE_FILE, { force: true });
-    console.log("Put back this sim's own SimBrief account");
+    console.log("Put back this sim's own SimBrief pilot ID");
   };
 
-  // Each time the main menu opens: put back anything borrowed in an earlier session, then remember our own values.
-  const onMainMenu = async () => {
-    if (!borrowing) await restore();
-    if (borrowing) return;
-    own = (await menu.read(keys)) ?? own;
-    const known = Object.values(own).some((value) => value !== null && value !== "");
-    console.log(known ? "Read this sim's SimBrief account" : "No SimBrief account set in this sim");
-  };
+  // Each time the main menu opens, anything borrowed in an earlier session goes back.
   menu.onChange(() => {
     const opened = menu.has("main-menu") && !atMainMenu;
     atMainMenu = menu.has("main-menu");
-    if (opened) void onMainMenu();
+    if (opened && !borrowing) void restore();
   });
 
   return {
-    own: (wanted) => Object.fromEntries(wanted.map((key) => [key, own[key] ?? null])),
     async borrow(values) {
       // Keep the first originals: borrowing twice must not save the captain's values as ours.
       if (savedOriginals() === undefined) {

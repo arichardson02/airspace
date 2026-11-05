@@ -3,7 +3,8 @@ import type { SimConnectConnection } from "node-simconnect";
 import { msfsFolders, type MsfsFolders } from "../msfs-paths.js";
 import { aircraftPaths, composeSpawnFlight, loadedAircraftPath, saveFlight } from "../spawn/flight-file.js";
 import type { AccountKeeper } from "../spawn/account.js";
-import type { MenuLink, StoredValues } from "../spawn/menu.js";
+import { simbriefPilotIdKeys } from "../aircraft/profiles.js";
+import type { MenuLink } from "../spawn/menu.js";
 import { coPilotView, takeSeat, watchCockpit } from "../spawn/seat.js";
 import { spawnInto, type Spawn, type SpawnState } from "../spawn/spawn.js";
 
@@ -36,12 +37,12 @@ export function startSpawning(options: {
   handle: SimConnectConnection;
   menu: MenuLink;
   accounts: AccountKeeper;
-  /** The loaded aircraft's flight-plan account keys (none for most aircraft). */
-  flightPlanAccountKeys: () => readonly string[];
+  /** Our SimBrief pilot ID, from our account settings. */
+  simbriefPilotId: () => Promise<string | null>;
   send: (message: CoopMessage) => void;
   changed: () => void;
 }): Spawning {
-  const { handle, menu, accounts, flightPlanAccountKeys, send, changed } = options;
+  const { handle, menu, accounts, simbriefPilotId, send, changed } = options;
   const folders = msfsFolders();
   let requested = false;
   let note: string | undefined;
@@ -72,13 +73,10 @@ export function startSpawning(options: {
     try {
       const flt = await saveFlight(handle);
       const paths = folders === undefined ? [] : aircraftPaths(folders, await loadedAircraftPath(handle));
-      // Not read yet (Airspace wasn't running while our main menu was open) or not set: nothing to lend.
-      const account = accounts.own(flightPlanAccountKeys());
-      const known = Object.values(account).some((value) => value !== null && value !== "");
-      if (!known && Object.keys(account).length > 0) {
-        console.warn("Our SimBrief account isn't known: start Airspace before Flight Simulator to share flight plans");
-      }
-      send({ type: "flight-file", flt, aircraftPaths: paths, flightPlanAccount: known ? account : {} });
+      const pilotId = await simbriefPilotId();
+      if (pilotId === null)
+        console.warn("No SimBrief pilot ID in your Airspace settings: the co-pilot's uplink can't load your plan");
+      send({ type: "flight-file", flt, aircraftPaths: paths, simbriefPilotId: pilotId });
       console.log("Sent our flight to the co-pilot");
     } catch (error) {
       console.warn(
@@ -106,7 +104,7 @@ export function startSpawning(options: {
     }
   };
 
-  const loadHostFlight = async (flt: string, paths: readonly string[], account: StoredValues) => {
+  const loadHostFlight = async (flt: string, paths: readonly string[], pilotId: string | null) => {
     if (folders === undefined) {
       setNote("Couldn't find Flight Simulator's packages to load the host's flight");
       return;
@@ -117,8 +115,8 @@ export function startSpawning(options: {
       return;
     }
     // Written through the main menu before the flight launches; a co-pilot already in a flight keeps their own.
-    if (Object.keys(account).length > 0) {
-      const borrowed = await accounts.borrow(account);
+    if (pilotId !== null) {
+      const borrowed = await accounts.borrow(Object.fromEntries(simbriefPilotIdKeys().map((key) => [key, pilotId])));
       console.log(
         borrowed
           ? "Using the host's SimBrief account for the flight plan uplink"
@@ -154,7 +152,7 @@ export function startSpawning(options: {
     },
     receive(message) {
       if (message.type === "flight-request") void sendFlight();
-      else void loadHostFlight(message.flt, message.aircraftPaths, message.flightPlanAccount);
+      else void loadHostFlight(message.flt, message.aircraftPaths, message.simbriefPilotId);
     },
     note: () => note,
     reset() {

@@ -59,11 +59,13 @@ export interface Sharing {
 export function startSharing(options: {
   sim: CoopSim;
   self: string;
+  /** Our SimBrief pilot ID, from our account settings. */
+  simbriefPilotId: () => Promise<string | null>;
   send: (message: CoopMessage) => void;
   /** The status changed. */
   changed: () => void;
 }): Sharing {
-  const { sim, self, send, changed } = options;
+  const { sim, self, simbriefPilotId, send, changed } = options;
   let peer: Hello | undefined;
   let peerId = "";
   let peerConnected = false;
@@ -81,7 +83,7 @@ export function startSharing(options: {
     handle: sim.handle,
     menu: menuLink(),
     accounts: sim.accounts,
-    flightPlanAccountKeys: () => sim.aircraft()?.profile.flightPlanAccount ?? [],
+    simbriefPilotId,
     send,
     changed,
   });

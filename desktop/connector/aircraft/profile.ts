@@ -146,10 +146,11 @@ export interface AircraftProfile {
   flightControls: Control[];
   fms?: FmsSync;
   /**
-   * The sim's stored-data keys (GetStoredData) naming the account the aircraft downloads flight plans with. In co-op
-   * the co-pilot borrows the captain's, so a mirrored uplink loads the captain's plan.
+   * The sim's stored-data key (GetStoredData) holding the SimBrief pilot ID the aircraft downloads flight plans with.
+   * In co-op the co-pilot's sim is given the captain's (from their Airspace account), so a mirrored uplink loads the
+   * captain's plan.
    */
-  flightPlanAccount?: readonly string[];
+  simbriefPilotIdKey?: string;
 }
 
 /** The SimConnect name of a datum. */

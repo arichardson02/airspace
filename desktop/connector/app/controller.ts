@@ -1,5 +1,5 @@
 import type { ConnectorCommand } from "@fs-career/contracts";
-import type { DeviceCode, SignedIn } from "../auth/sign-in.js";
+import type { DeviceCode, Pilot, SignedIn } from "../auth/sign-in.js";
 import type { BackendClient } from "../backend-client.js";
 import type { Coop } from "../group/group-flight.js";
 import type { StatusStore } from "./status.js";
@@ -26,6 +26,8 @@ export interface ConnectorDeps<H extends SimHandle = SimHandle> {
   signIn(signal: AbortSignal, onCode: (code: DeviceCode) => void): Promise<SignedIn>;
   /** Forgets the saved sign-in. */
   signOut(): Promise<void>;
+  /** The signed-in pilot as the backend has them now (settings changed on the website included). */
+  currentPilot(token: string): Promise<Pilot | undefined>;
   openBrowser(url: string): void;
   /** The pilot's dashboard on the website. */
   dashboardUrl: string;
@@ -135,6 +137,18 @@ export class Connector<H extends SimHandle = SimHandle> {
     if (this.sim) this.sendHello(this.sim.connection);
   }
 
+  /** The pilot's SimBrief pilot ID, fetched again so one just set on the website counts. */
+  private async simbriefPilotId(): Promise<string | null> {
+    const { signedIn } = this;
+    if (!signedIn) return null;
+    const pilot = await this.deps.currentPilot(signedIn.token).catch(() => undefined);
+    if (pilot && this.signedIn === signedIn) {
+      this.signedIn = { ...signedIn, pilot };
+      this.status.update({ account: { state: "signed-in", pilot } });
+    }
+    return (pilot ?? signedIn.pilot).simbriefPilotId;
+  }
+
   /** Signs out, after the pilot asked to or the backend stopped accepting the session, and starts a new sign-in. */
   private async endSession(): Promise<void> {
     if (!this.signedIn) return;
@@ -224,6 +238,7 @@ export class Connector<H extends SimHandle = SimHandle> {
       groupCode,
       token: signedIn.token,
       pilot: { pilotId: signedIn.pilot.id, name: signedIn.pilot.name },
+      simbriefPilotId: () => this.simbriefPilotId(),
       onChange: (update) => {
         if (current()) this.status.update({ coop: { state: "joined", groupCode, ...update } });
       },

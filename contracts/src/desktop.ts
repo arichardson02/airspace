@@ -5,10 +5,15 @@
 import { z } from "zod";
 import type { GroupPeer } from "./group.js";
 
+/** A SimBrief pilot ID: the number on the pilot's SimBrief account page. */
+export const simbriefPilotIdSchema = z.string().regex(/^\d{1,10}$/, "A SimBrief pilot ID is a number");
+
 export interface Pilot {
   id: string;
   name: string;
   email: string;
+  /** Their SimBrief pilot ID, set in Settings; in co-op the co-pilot's uplink loads the captain's plan with it. */
+  simbriefPilotId: string | null;
 }
 
 export type AccountStatus =

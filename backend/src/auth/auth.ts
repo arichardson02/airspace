@@ -1,6 +1,7 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth, type Auth as BetterAuth, type BetterAuthOptions } from "better-auth";
 import { bearer, deviceAuthorization } from "better-auth/plugins";
+import { simbriefPilotIdSchema } from "@fs-career/contracts";
 import type { Database } from "../database/database.module.js";
 import { authSchema } from "./auth.schema.js";
 import type { SendEmail } from "./email.js";
@@ -33,6 +34,17 @@ function authOptions(db: Database, { baseURL, secret, sendEmail }: AuthConfig) {
     // The site is also served on www.<domain>.
     trustedOrigins: hostname === "localhost" ? [] : [`https://www.${hostname}`],
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema, usePlural: true }),
+    user: {
+      additionalFields: {
+        // Pilots set it in Settings (website or desktop app) through update-user; it comes back with the session.
+        simbriefPilotId: {
+          type: "string",
+          required: false,
+          input: true,
+          validator: { input: simbriefPilotIdSchema.nullable() },
+        },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
